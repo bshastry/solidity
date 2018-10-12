@@ -322,8 +322,8 @@ case $(uname -s) in
                         ;;
                 esac
 
-                sudo apt-get -y update
-                sudo apt-get -y install \
+                apt-get -y update
+                apt-get -y install \
                     build-essential \
                     cmake \
                     git \
@@ -333,17 +333,17 @@ case $(uname -s) in
                     # install Z3 from PPA if the distribution does not provide it
                     if ! dpkg -l libz3-dev > /dev/null 2>&1
                     then
-                        sudo apt-add-repository -y ppa:hvr/z3
-                        sudo apt-get -y update
-                        sudo apt-get -y install libz3-dev
+                        apt-add-repository -y ppa:hvr/z3
+                        apt-get -y update
+                        apt-get -y install libz3-dev
                     fi
 
                     # Install 'eth', for use in the Solidity Tests-over-IPC.
                     # We will not use this 'eth', but its dependencies
-                    sudo add-apt-repository -y ppa:ethereum/ethereum
-                    sudo add-apt-repository -y ppa:ethereum/ethereum-dev
-                    sudo apt-get -y update
-                    sudo apt-get -y install eth
+                    add-apt-repository -y ppa:ethereum/ethereum
+                    add-apt-repository -y ppa:ethereum/ethereum-dev
+                    apt-get -y update
+                    apt-get -y install eth
                 fi
                 ;;
 
