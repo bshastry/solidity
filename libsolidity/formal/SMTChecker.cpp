@@ -81,8 +81,6 @@ bool SMTChecker::visit(FunctionDefinition const& _function)
 		resetStateVariables();
 		initializeLocalVariables(_function);
 	}
-	else
-		initializeFunctionParameters(_function);
 
 	m_loopExecutionHappened = false;
 	return true;
@@ -96,15 +94,7 @@ void SMTChecker::endVisit(FunctionDefinition const&)
 	// Otherwise we remove any local variables from the context and
 	// keep the state variables.
 	if (isRootFunction())
-	{
-		solAssert(m_functionArguments.empty(), "");
 		removeLocalVariables();
-	}
-	else
-	{
-		solAssert(m_functionPath.size() == m_functionArguments.size() + 1, "");
-		m_functionArguments.pop_back();
-	}
 	m_functionPath.pop_back();
 }
 
@@ -408,20 +398,28 @@ void SMTChecker::visitRequire(FunctionCall const& _funCall)
 
 void SMTChecker::inlineFunctionCall(FunctionCall const& _funCall)
 {
-	FunctionDefinition const* _funDef;
-	if (Identifier const* _fun = dynamic_cast<Identifier const*>(&_funCall.expression()))
+	FunctionDefinition const* _funDef = nullptr;
+	Expression const* _calledExpr = &_funCall.expression();
+
+	if (TupleExpression const* _fun = dynamic_cast<TupleExpression const*>(&_funCall.expression()))
+	{
+		solAssert(_fun->components().size() == 1, "");
+		_calledExpr = _fun->components().at(0).get();
+	}
+
+	if (Identifier const* _fun = dynamic_cast<Identifier const*>(_calledExpr))
 		_funDef = dynamic_cast<FunctionDefinition const*>(_fun->annotation().referencedDeclaration);
-	else if (MemberAccess const* _fun = dynamic_cast<MemberAccess const*>(&_funCall.expression()))
+	else if (MemberAccess const* _fun = dynamic_cast<MemberAccess const*>(_calledExpr))
 		_funDef = dynamic_cast<FunctionDefinition const*>(_fun->annotation().referencedDeclaration);
 	else
 	{
-		// (f)(2) needs Tuple support
 		m_errorReporter.warning(
 			_funCall.location(),
 			"Assertion checker does not yet implement this type of function call."
 		);
 		return;
 	}
+	solAssert(_funDef, "");
 
 	if (visitedFunction(_funDef))
 		m_errorReporter.warning(
@@ -434,11 +432,19 @@ void SMTChecker::inlineFunctionCall(FunctionCall const& _funCall)
 		vector<smt::Expression> funArgs;
 		for (auto arg: _funCall.arguments())
 			funArgs.push_back(expr(*arg));
-		m_functionArguments.push_back(funArgs);
+		initializeFunctionCallParameters(*_funDef, funArgs);
 		_funDef->accept(*this);
 		auto const& returnParams = _funDef->returnParameters();
 		if (_funDef->returnParameters().size())
-			defineExpr(_funCall, currentValue(*returnParams[0]));
+		{
+			if (returnParams.size() > 1)
+				m_errorReporter.warning(
+					_funCall.location(),
+					"Assertion checker does not yet support calls to functions that return more than one value."
+				);
+			else
+				defineExpr(_funCall, currentValue(*returnParams[0]));
+		}
 	}
 	else
 	{
@@ -470,6 +476,7 @@ void SMTChecker::endVisit(Identifier const& _identifier)
 	{
 		if (fun->kind() == FunctionType::Kind::Assert || fun->kind() == FunctionType::Kind::Require)
 			return;
+		createExpr(_identifier);
 	}
 }
 
@@ -497,7 +504,16 @@ void SMTChecker::endVisit(Literal const& _literal)
 void SMTChecker::endVisit(Return const& _return)
 {
 	if (hasExpr(*_return.expression()))
-		m_interface->addAssertion(expr(*_return.expression()) == newValue(*m_functionPath.back()->returnParameters()[0]));
+	{
+		auto returnParams = m_functionPath.back()->returnParameters();
+		if (returnParams.size() > 1)
+			m_errorReporter.warning(
+				_return.location(),
+				"Assertion checker does not yet support more than one return value."
+			);
+		else if (returnParams.size() == 1)
+			m_interface->addAssertion(expr(*_return.expression()) == newValue(*returnParams[0]));
+	}
 }
 
 void SMTChecker::arithmeticOperation(BinaryOperation const& _op)
@@ -811,14 +827,13 @@ smt::CheckResult SMTChecker::checkSatisfiable()
 	return checkSatisfiableAndGenerateModel({}).first;
 }
 
-void SMTChecker::initializeFunctionParameters(FunctionDefinition const& _function)
+void SMTChecker::initializeFunctionCallParameters(FunctionDefinition const& _function, vector<smt::Expression> const& _callArgs)
 {
 	auto const& funParams = _function.parameters();
-	auto const& callArgs = m_functionArguments.back();
-	solAssert(funParams.size() == callArgs.size(), "");
+	solAssert(funParams.size() == _callArgs.size(), "");
 	for (unsigned i = 0; i < funParams.size(); ++i)
 		if (createVariable(*funParams[i]))
-			m_interface->addAssertion(callArgs[i] == newValue(*funParams[i]));
+			m_interface->addAssertion(_callArgs[i] == newValue(*funParams[i]));
 
 	for (auto const& variable: _function.localVariables())
 		if (createVariable(*variable))
@@ -1003,8 +1018,16 @@ void SMTChecker::createExpr(Expression const& _e)
 	case Type::Category::Bool:
 		m_expressions.emplace(&_e, m_interface->newBool(exprSymbol));
 		break;
+	case Type::Category::Function:
+		// This should be replaced by a `non-deterministic` type in the future.
+		m_expressions.emplace(&_e, m_interface->newInteger(exprSymbol));
+		break;
 	default:
-		solUnimplementedAssert(false, "Type not implemented.");
+		m_expressions.emplace(&_e, m_interface->newInteger(exprSymbol));
+		m_errorReporter.warning(
+			_e.location(),
+			"Assertion checker does not yet implement this type."
+		);
 	}
 }
 
@@ -1049,5 +1072,5 @@ bool SMTChecker::isRootFunction()
 
 bool SMTChecker::visitedFunction(FunctionDefinition const* _funDef)
 {
-	return find(m_functionPath.begin(), m_functionPath.end(), _funDef) != m_functionPath.end();
+	return contains(m_functionPath, _funDef);
 }

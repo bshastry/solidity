@@ -119,7 +119,7 @@ private:
 	smt::CheckResult checkSatisfiable();
 
 	void initializeLocalVariables(FunctionDefinition const& _function);
-	void initializeFunctionParameters(FunctionDefinition const& _function);
+	void initializeFunctionCallParameters(FunctionDefinition const& _function, std::vector<smt::Expression> const& _callArgs);
 	void resetStateVariables();
 	void resetVariables(std::vector<VariableDeclaration const*> _variables);
 	/// Given two different branches and the touched variables,
@@ -188,9 +188,6 @@ private:
 
 	/// Stores the current path of function calls.
 	std::vector<FunctionDefinition const*> m_functionPath;
-	/// Used to pass arguments from a FunctionCall to a FunctionDefinition
-	/// when inlining function calls.
-	std::vector<std::vector<smt::Expression>> m_functionArguments;
 	/// Returns true if the current function was not visited by
 	/// a function call.
 	bool isRootFunction();
