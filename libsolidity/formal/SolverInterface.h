@@ -63,7 +63,7 @@ public:
 	Expression(Expression const&) = default;
 	Expression(Expression&&) = default;
 	Expression& operator=(Expression const&) = default;
-	Expression& operator=(Expression&&) = default;
+//	Expression& operator=(Expression&&) = default;
 
 	bool hasCorrectArity() const
 	{
