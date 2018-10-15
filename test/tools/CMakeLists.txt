@@ -1,5 +1,5 @@
 add_executable(solc_target solc_target.cpp)
-target_link_libraries(solc_target PRIVATE libsolc evmasm ${Boost_PROGRAM_OPTIONS_LIBRARIES} ${Boost_SYSTEM_LIBRARIES} $LIB_FUZZING_ENGINE)
+target_link_libraries(solc_target PRIVATE libsolc evmasm ${Boost_PROGRAM_OPTIONS_LIBRARIES} ${Boost_SYSTEM_LIBRARIES} ${LIB_FUZZING_ENGINE})
 
 add_executable(solfuzzer fuzzer.cpp)
 target_link_libraries(solfuzzer PRIVATE libsolc evmasm ${Boost_PROGRAM_OPTIONS_LIBRARIES} ${Boost_SYSTEM_LIBRARIES})
