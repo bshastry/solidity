@@ -3,7 +3,6 @@ target_link_libraries(solc_target PRIVATE libsolc evmasm FuzzingEngine)
 set_target_properties(
 		solc_target PROPERTIES
 		LINK_SEARCH_START_STATIC ON
-		LINK_SEARCH_END_STATIC OFF
 )
 
 add_executable(solfuzzer fuzzer.cpp)
