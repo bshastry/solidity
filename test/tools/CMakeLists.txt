@@ -1,5 +1,5 @@
 add_executable(solc_target solc_target.cpp)
-target_link_libraries(solc_target PRIVATE libsolc evmasm FuzzingEngine)
+target_link_libraries(solc_target PRIVATE libsolc evmasm FuzzingEngine.a boost_regex.a boost_filesystem.a boost_system.a)
 set_target_properties(
 		solc_target PROPERTIES
 		LINK_SEARCH_START_STATIC ON
