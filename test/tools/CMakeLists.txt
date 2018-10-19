@@ -3,6 +3,7 @@ target_link_libraries(solc_target PRIVATE libsolc evmasm FuzzingEngine.a boost_r
 set_target_properties(
 		solc_target PROPERTIES
 		LINK_SEARCH_START_STATIC ON
+		LINK_FLAGS -nostdinc++ -L/usr/local/lib -I/usr/local/include/c++/v1
 )
 
 add_executable(solfuzzer fuzzer.cpp)
