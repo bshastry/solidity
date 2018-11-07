@@ -1,10 +1,12 @@
 if (DEFINED ENV{OSSFUZZ})
 add_custom_target(ossfuzz)
-add_dependencies(ossfuzz solc_target const_opt_target)
+add_dependencies(ossfuzz solc_target const_opt_target yulopti_target)
 add_executable(solc_target solc_target.cpp)
 target_link_libraries(solc_target PRIVATE libsolc FuzzingEngine.a)
 add_executable(const_opt_target const_opt_target.cpp)
 target_link_libraries(const_opt_target PRIVATE evmasm FuzzingEngine.a)
+add_executable(yulopti_target yulopti_target.cpp)
+target_link_libraries(yulopti_target PRIVATE solidity FuzzingEngine.a)
 endif()
 
 add_executable(solfuzzer fuzzer.cpp)
