@@ -46,6 +46,10 @@
 #include <libyul/optimiser/ExpressionJoiner.h>
 #include <libyul/optimiser/RedundantAssignEliminator.h>
 #include <libyul/optimiser/SSATransform.h>
+#include <libyul/optimiser/StructuralSimplifier.h>
+#include <libyul/optimiser/VarDeclInitializer.h>
+
+#include <libyul/backends/evm/EVMDialect.h>
 
 #include <libdevcore/JSON.h>
 
@@ -62,9 +66,9 @@ using namespace yul;
 class YulOpti
 {
 public:
-	void printErrors(Scanner const& _scanner)
+	void printErrors()
 	{
-		SourceReferenceFormatter formatter(cout, [&](string const&) -> Scanner const& { return _scanner; });
+		SourceReferenceFormatter formatter(cout);
 
 		for (auto const& error: m_errors)
 			formatter.printExceptionInformation(
@@ -77,11 +81,11 @@ public:
 	{
 		ErrorReporter errorReporter(m_errors);
 		shared_ptr<Scanner> scanner = make_shared<Scanner>(CharStream(_input, ""));
-		m_ast = yul::Parser(errorReporter, yul::Dialect::strictAssemblyForEVM()).parse(scanner, false);
+		m_ast = yul::Parser(errorReporter, m_dialect).parse(scanner, false);
 		if (!m_ast || !errorReporter.errors().empty())
 		{
 			cout << "Error parsing source." << endl;
-			printErrors(*scanner);
+			printErrors();
 			return false;
 		}
 		m_analysisInfo = make_shared<yul::AsmAnalysisInfo>();
@@ -90,12 +94,12 @@ public:
 			errorReporter,
 			EVMVersion::byzantium(),
 			langutil::Error::Type::SyntaxError,
-			Dialect::strictAssemblyForEVM()
+			m_dialect
 		);
 		if (!analyzer.analyze(*m_ast) || !errorReporter.errors().empty())
 		{
 			cout << "Error analyzing source." << endl;
-			printErrors(*scanner);
+			printErrors();
 			return false;
 		}
 		return true;
@@ -106,21 +110,21 @@ public:
 		if (!parse(source))
 			return;
 
-		*m_ast = boost::get<yul::Block>(Disambiguator(*m_analysisInfo)(*m_ast));
+		*m_ast = boost::get<yul::Block>(Disambiguator(*m_dialect, *m_analysisInfo)(*m_ast));
 		m_analysisInfo.reset();
-		m_nameDispenser = make_shared<NameDispenser>(*m_ast);
+		m_nameDispenser = make_shared<NameDispenser>(*m_dialect, *m_ast);
 		size_t source_len = source.length();
 
-		switch (source_len % 15)
+		switch (source_len % 16)
 		{
 			case 0:
 				BlockFlattener{}(*m_ast);
 				break;
 			case 1:
-				(CommonSubexpressionEliminator{})(*m_ast);
+				(CommonSubexpressionEliminator{*m_dialect})(*m_ast);
 				break;
 			case 2:
-				ExpressionSplitter{*m_nameDispenser}(*m_ast);
+				ExpressionSplitter{*m_dialect, *m_nameDispenser}(*m_ast);
 				break;
 			case 3:
 				ExpressionJoiner::run(*m_ast);
@@ -132,28 +136,34 @@ public:
 				(FunctionHoister{})(*m_ast);
 				break;
 			case 6:
-				ExpressionInliner{*m_ast}.run();
+				ExpressionInliner{*m_dialect, *m_ast}.run();
 				break;
 			case 7:
 				FullInliner(*m_ast, *m_nameDispenser).run();
 				break;
 			case 8:
-				ExpressionSimplifier::run(*m_ast);
+				ExpressionSimplifier::run(*m_dialect, *m_ast);
 				break;
 			case 9:
-				UnusedPruner::runUntilStabilised(*m_ast);
+				UnusedPruner::runUntilStabilised(*m_dialect, *m_ast);
 				break;
 			case 10:
 				SSATransform::run(*m_ast, *m_nameDispenser);
 				break;
 			case 11:
-				RedundantAssignEliminator::run(*m_ast);
+				RedundantAssignEliminator::run(*m_dialect, *m_ast);
 				break;
 			case 12:
 				ForLoopInitRewriter{}(*m_ast);
 				break;
 			case 13:
-				Rematerialiser{}(*m_ast);
+				Rematerialiser::run(*m_dialect, *m_ast);
+				break;
+			case 14:
+				(VarDeclInitializer{})(*m_ast);
+				break;
+			case 15:
+				(StructuralSimplifier{*m_dialect})(*m_ast);
 				break;
 			default:
 				cout << "Unknown option." << endl;
@@ -164,6 +174,7 @@ public:
 private:
 	ErrorList m_errors;
 	shared_ptr<yul::Block> m_ast;
+	shared_ptr<Dialect> m_dialect{EVMDialect::strictAssemblyForEVMObjects()};
 	shared_ptr<AsmAnalysisInfo> m_analysisInfo;
 	shared_ptr<NameDispenser> m_nameDispenser;
 };
