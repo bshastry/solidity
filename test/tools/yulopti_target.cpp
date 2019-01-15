@@ -46,7 +46,6 @@
 #include <libyul/optimiser/ExpressionJoiner.h>
 #include <libyul/optimiser/RedundantAssignEliminator.h>
 #include <libyul/optimiser/SSATransform.h>
-#include <libyul/optimiser/VarDeclPropagator.h>
 
 #include <libdevcore/JSON.h>
 
@@ -154,9 +153,6 @@ public:
 				ForLoopInitRewriter{}(*m_ast);
 				break;
 			case 13:
-				(VarDeclPropagator{})(*m_ast);
-				break;
-			case 14:
 				Rematerialiser{}(*m_ast);
 				break;
 			default:
