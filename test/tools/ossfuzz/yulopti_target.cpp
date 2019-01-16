@@ -1,4 +1,4 @@
-#include "yulopti.h"
+#include <test/tools/yulopti.h>
 
 extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
 {
