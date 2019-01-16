@@ -35,8 +35,6 @@ namespace po = boost::program_options;
 namespace
 {
 
-    bool quiet = false;
-
     string contains(string const& _haystack, vector<string> const& _needles)
     {
         for (string const& needle: _needles)
@@ -69,15 +67,7 @@ namespace
             }
     }
 
-    void testStandardCompiler(string const& input)
-    {
-        if (!quiet)
-            cout << "Testing compiler via JSON interface." << endl;
-
-        runCompiler(input);
-    }
-
-    void testCompiler(string const& input, bool optimize)
+    void testCompiler(string const& input, bool optimize, bool quiet)
     {
         if (!quiet)
             cout << "Testing compiler " << (optimize ? "with" : "without") << " optimizer." << endl;

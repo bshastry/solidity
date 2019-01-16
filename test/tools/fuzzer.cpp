@@ -1,6 +1,16 @@
 #include <test/tools/fuzzer.h>
 #include <test/tools/constopt.h>
 
+namespace {
+    void testStandardCompiler(string const& input, bool quiet)
+    {
+        if (!quiet)
+            cout << "Testing compiler via JSON interface." << endl;
+
+        runCompiler(input);
+    }
+}
+
 int main(int argc, char** argv)
 {
 	po::options_description options(
@@ -38,6 +48,7 @@ Allowed options)",
 	// All positional options should be interpreted as input files
 	po::positional_options_description filesPositions;
 	filesPositions.add("input-file", 1);
+	bool quiet = false;
 
 	po::variables_map arguments;
 	try
@@ -66,9 +77,9 @@ Allowed options)",
 	else if (arguments.count("const-opt"))
 		testConstantOptimizer(input, quiet);
 	else if (arguments.count("standard-json"))
-		testStandardCompiler(input);
+		testStandardCompiler(input, quiet);
 	else
-		testCompiler(input, !arguments.count("without-optimizer"));
+		testCompiler(input, !arguments.count("without-optimizer"), quiet);
 
 	return 0;
 }
