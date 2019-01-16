@@ -64,7 +64,7 @@ Allowed options)",
 	if (arguments.count("help"))
 		cout << options;
 	else if (arguments.count("const-opt"))
-		testConstantOptimizer(input);
+		testConstantOptimizer(input, quiet);
 	else if (arguments.count("standard-json"))
 		testStandardCompiler(input);
 	else

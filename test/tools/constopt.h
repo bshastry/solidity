@@ -14,6 +14,9 @@
 	You should have received a copy of the GNU General Public License
 	along with solidity.  If not, see <http://www.gnu.org/licenses/>.
 */
+#include <libdevcore/CommonIO.h>
+#include <libevmasm/Assembly.h>
+#include <libsolc/libsolc.h>
 
 #include <libevmasm/ConstantOptimiser.h>
 
@@ -26,7 +29,7 @@ using namespace dev;
 using namespace dev::eth;
 
 namespace {
-    void testConstantOptimizer(string const &input) {
+    void testConstantOptimizer(string const &input, bool quiet) {
         if (!quiet)
             cout << "Testing constant optimizer" << endl;
         vector<u256> numbers;
