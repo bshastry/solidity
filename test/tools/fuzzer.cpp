@@ -1,4 +1,5 @@
 #include <test/tools/fuzzer.h>
+#include <test/tools/constopt.h>
 
 int main(int argc, char** argv)
 {

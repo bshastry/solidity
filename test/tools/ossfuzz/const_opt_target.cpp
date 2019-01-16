@@ -1,4 +1,4 @@
-#include <test/tools/fuzzer.h>
+#include <test/tools/constopt.h>
 
 extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
 {
