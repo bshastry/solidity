@@ -1,3 +1,5 @@
+#include <test/tools/fuzzer.h>
+
 int main(int argc, char** argv)
 {
 	po::options_description options(
