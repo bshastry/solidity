@@ -1,5 +1,5 @@
 if (DEFINED ENV{OSSFUZZ})
-  add_subdirectory(ossfuzz)
+    add_subdirectory(ossfuzz)
 endif()
 
 add_executable(solfuzzer fuzzer.cpp)
