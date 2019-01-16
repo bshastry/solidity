@@ -5,10 +5,10 @@ add_executable(solc_opt_target solc_opt_target.cpp)
 add_executable(const_opt_target const_opt_target.cpp)
 add_executable(yulopti_target yulopti_target.cpp)
 target_link_libraries(solc_noopt_target PRIVATE libsolc evmasm FuzzingEngine.a)
-#[[target_include_directories(solc_noopt_target PRIVATE ..)]]
+target_include_directories(solc_noopt_target PRIVATE ${CMAKE_SOURCE_DIR}/test/tools)
 target_link_libraries(solc_opt_target PRIVATE libsolc evmasm FuzzingEngine.a)
-#[[target_include_directories(solc_opt_target PRIVATE ..)]]
+target_include_directories(solc_opt_target PRIVATE ${CMAKE_SOURCE_DIR}/test/tools)
 target_link_libraries(const_opt_target PRIVATE evmasm FuzzingEngine.a)
-#[[target_include_directories(const_opt_target PRIVATE ..)]]
+target_include_directories(const_opt_target PRIVATE ${CMAKE_SOURCE_DIR}/test/tools)
 target_link_libraries(yulopti_target PRIVATE solidity FuzzingEngine.a)
-#[[target_include_directories(yulopti_target PRIVATE ..)]]
+target_include_directories(yulopti_target PRIVATE ${CMAKE_SOURCE_DIR}/test/tools)
