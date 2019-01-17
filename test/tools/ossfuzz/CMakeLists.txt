@@ -1,0 +1,11 @@
+add_custom_target(ossfuzz)
+add_dependencies(ossfuzz solc_opt_target solc_noopt_target const_opt_target)
+
+add_executable(solc_opt_target solc_opt_target.cpp)
+target_link_libraries(solc_opt_target PRIVATE libsolc evmasm FuzzingEngine.a)
+
+add_executable(solc_noopt_target solc_noopt_target.cpp)
+target_link_libraries(solc_noopt_target PRIVATE libsolc evmasm FuzzingEngine.a)
+
+add_executable(const_opt_target const_opt_target.cpp)
+target_link_libraries(const_opt_target PRIVATE evmasm FuzzingEngine.a)
