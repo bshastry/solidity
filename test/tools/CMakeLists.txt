@@ -1,8 +1,8 @@
-if (DEFINED ENV{OSSFUZZ})
+if (OSSFUZZ)
     add_subdirectory(ossfuzz)
 endif()
 
-add_executable(solfuzzer fuzzer.cpp)
+add_executable(solfuzzer afl_fuzzer.cpp)
 target_link_libraries(solfuzzer PRIVATE libsolc evmasm ${Boost_PROGRAM_OPTIONS_LIBRARIES} ${Boost_SYSTEM_LIBRARIES})
 
 add_executable(yulopti yulopti.cpp)

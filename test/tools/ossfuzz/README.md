@@ -15,7 +15,7 @@ Test harnesses and cmake script is provided in this directory. Apart from this, 
 
 ## What is libFuzzingEngine.a?
 
-`libFuzzingEngine.a` is a oss-fuzz-related dependency. It is present in the Dockerized environment in which Solidity's oss-fuzz code will be built.
+`libFuzzingEngine.a` is an oss-fuzz-related dependency. It is present in the Dockerized environment in which Solidity's oss-fuzz code will be built.
 
 ## Is this directory relevant for routine Solidity CI builds?
 

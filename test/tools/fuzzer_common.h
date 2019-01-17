@@ -14,11 +14,13 @@
 	You should have received a copy of the GNU General Public License
 	along with solidity.  If not, see <http://www.gnu.org/licenses/>.
 */
+
 #include <libdevcore/CommonIO.h>
 #include <libevmasm/Assembly.h>
 #include <libsolc/libsolc.h>
-
 #include <libevmasm/ConstantOptimiser.h>
+
+#include <libdevcore/JSON.h>
 
 #include <string>
 #include <sstream>
@@ -28,6 +30,11 @@ using namespace std;
 using namespace dev;
 using namespace dev::eth;
 
-namespace {
-
-}
+struct FuzzerUtil
+{
+    static string contains(string const& _haystack, vector<string> const& _needles);
+    static void runCompiler(string _input);
+    static void testCompiler(string const& _input, bool _optimize, bool quiet);
+    static void testConstantOptimizer(string const& _input, bool _quiet);
+    static void testStandardCompiler(string const& _input, bool _quiet);
+};

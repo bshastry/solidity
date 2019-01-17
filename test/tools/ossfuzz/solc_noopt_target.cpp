@@ -1,8 +1,8 @@
-#include <test/tools/fuzzer.h>
+#include <test/tools/fuzzer_common.h>
 
-extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
+extern "C" int LLVMFuzzerTestOneInput(uint8_t const* _data, size_t _size)
 {
-    string input(reinterpret_cast<const char*>(data), size);
-    testCompiler(input, /*optimize=*/false, /*quiet=*/true);
+    string input(reinterpret_cast<char const*>(_data), _size);
+    FuzzerUtil::testCompiler(input, /*optimize=*/false, /*quiet=*/true);
     return 0;
 }
