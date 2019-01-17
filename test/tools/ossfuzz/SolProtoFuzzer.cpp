@@ -15,13 +15,13 @@
 	along with solidity.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include "sol_proto.pb.h"
 #include <test/tools/fuzzer_common.h>
+#include "proto-to-cxx/proto_to_cxx.h"
+//#include "fuzzer-initialize/fuzzer_initialize.h"
+#include "src/libfuzzer/libfuzzer_macro.h"
 
-using namespace std;
-
-extern "C" int LLVMFuzzerTestOneInput(uint8_t const* _data, size_t _size)
-{
-	string input(reinterpret_cast<char const*>(_data), _size);
-	FuzzerUtil::testConstantOptimizer(input, true);
-	return 0;
+DEFINE_BINARY_PROTO_FUZZER(const Function& input) {
+  auto S = FunctionToString(input);
+  FuzzerUtil::testCompiler(S, true, true);
 }
