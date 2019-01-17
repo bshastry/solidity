@@ -9,4 +9,4 @@ add_executable(solc_noopt_ossfuzz solc_noopt_ossfuzz.cpp ../fuzzer_common.cpp)
 target_link_libraries(solc_noopt_ossfuzz PRIVATE libsolc evmasm FuzzingEngine.a)
 
 add_executable(const_opt_ossfuzz const_opt_ossfuzz.cpp ../fuzzer_common.cpp)
-target_link_libraries(const_opt_ossfuzz PRIVATE evmasm FuzzingEngine.a)
+target_link_libraries(const_opt_ossfuzz PRIVATE libsolc evmasm FuzzingEngine.a)
