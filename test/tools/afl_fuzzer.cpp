@@ -18,18 +18,10 @@
  * Executable for use with AFL <http://lcamtuf.coredump.cx/afl>.
  */
 
-#include <test/tools/fuzzer.h>
-#include <test/tools/constopt.h>
+#include <test/tools/fuzzer_common.h>
+#include <boost/program_options.hpp>
 
-namespace {
-    void testStandardCompiler(string const& input, bool quiet)
-    {
-        if (!quiet)
-            cout << "Testing compiler via JSON interface." << endl;
-
-        runCompiler(input);
-    }
-}
+namespace po = boost::program_options;
 
 int main(int argc, char** argv)
 {
@@ -95,11 +87,11 @@ Allowed options)",
 	if (arguments.count("help"))
 		cout << options;
 	else if (arguments.count("const-opt"))
-		testConstantOptimizer(input, quiet);
+		FuzzerUtil::testConstantOptimizer(input, quiet);
 	else if (arguments.count("standard-json"))
-		testStandardCompiler(input, quiet);
+		FuzzerUtil::testStandardCompiler(input, quiet);
 	else
-		testCompiler(input, !arguments.count("without-optimizer"), quiet);
+		FuzzerUtil::testCompiler(input, !arguments.count("without-optimizer"), quiet);
 
 	return 0;
 }
