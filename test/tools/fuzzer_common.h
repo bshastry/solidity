@@ -30,9 +30,10 @@ using namespace std;
 using namespace dev;
 using namespace dev::eth;
 
+string contains(string const& _haystack, vector<string> const& _needles);
+
 struct FuzzerUtil
 {
-    static string contains(string const& _haystack, vector<string> const& _needles);
     static void runCompiler(string _input);
     static void testCompiler(string const& _input, bool _optimize, bool quiet);
     static void testConstantOptimizer(string const& _input, bool _quiet);
