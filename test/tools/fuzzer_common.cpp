@@ -17,6 +17,10 @@
 
 #include <test/tools/fuzzer_common.h>
 
+using namespace std;
+using namespace dev;
+using namespace dev::eth;
+
 string contains(string const& _haystack, vector<string> const& _needles)
 {
     for (string const& needle: _needles)
@@ -72,7 +76,8 @@ void FuzzerUtil::testCompiler(string const& _input, bool _optimize, bool _quiet)
     runCompiler(jsonCompactPrint(config));
 }
 
-void FuzzerUtil::testConstantOptimizer(string const& _input, bool _quiet) {
+void FuzzerUtil::testConstantOptimizer(string const& _input, bool _quiet)
+{
     if (!_quiet)
         cout << "Testing constant optimizer" << endl;
     vector<u256> numbers;
@@ -95,7 +100,6 @@ void FuzzerUtil::testConstantOptimizer(string const& _input, bool _quiet) {
         assembly.append(n);
     }
     for (bool isCreation: {false, true})
-    {
         for (unsigned runs: {1, 2, 3, 20, 40, 100, 200, 400, 1000})
         {
             ConstantOptimisationMethod::optimiseConstants(
@@ -106,7 +110,6 @@ void FuzzerUtil::testConstantOptimizer(string const& _input, bool _quiet) {
                     const_cast<AssemblyItems &>(assembly.items())
             );
         }
-    }
 }
 
 void FuzzerUtil::testStandardCompiler(string const& _input, bool _quiet)
