@@ -21,6 +21,10 @@
 #include <test/tools/fuzzer_common.h>
 #include <boost/program_options.hpp>
 
+using namespace std;
+using namespace dev;
+using namespace dev::eth;
+
 namespace po = boost::program_options;
 
 int main(int argc, char** argv)

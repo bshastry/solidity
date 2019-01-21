@@ -26,16 +26,10 @@
 #include <sstream>
 #include <iostream>
 
-using namespace std;
-using namespace dev;
-using namespace dev::eth;
-
-string contains(string const& _haystack, vector<string> const& _needles);
-
 struct FuzzerUtil
 {
-    static void runCompiler(string _input);
-    static void testCompiler(string const& _input, bool _optimize, bool quiet);
-    static void testConstantOptimizer(string const& _input, bool _quiet);
-    static void testStandardCompiler(string const& _input, bool _quiet);
+    static void runCompiler(std::string _input);
+    static void testCompiler(std::string const& _input, bool _optimize, bool quiet);
+    static void testConstantOptimizer(std::string const& _input, bool _quiet);
+    static void testStandardCompiler(std::string const& _input, bool _quiet);
 };
