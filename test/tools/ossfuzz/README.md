@@ -15,12 +15,6 @@ To help oss-fuzz do this, we (as project maintainers) need to provide the follow
 
 ## Is this directory relevant for routine Solidity CI builds?
 
-No. This is the reason why the `add_subdirectory(ossfuzz)` cmake directive is nested under the `if (OSSFUZZ)` predicate. `OSSFUZZ` is a new solidity-wide cmake option that can be enabled like so:
-
-```
-$ cmake -DOSSFUZZ=ON $SOLIDITY_SRC
-```
-
-where `$SOLIDITY_SRC` is the path to the solidity source tree. This invocation builds the ossfuzz-specfic fuzzing binaries.
+No. This is the reason why the `add_subdirectory(ossfuzz)` cmake directive is nested under the `if (OSSFUZZ)` predicate. `OSSFUZZ` is a solidity-wide cmake option that is invoked by the ossfuzz solidity-builder-bot in order to compile solidity fuzzer binaries.
 
 [1]: https://github.com/google/oss-fuzz

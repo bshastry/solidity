@@ -17,7 +17,7 @@
 
 #include <test/tools/fuzzer_common.h>
 
-string FuzzerUtil::contains(string const& _haystack, vector<string> const& _needles)
+string contains(string const& _haystack, vector<string> const& _needles)
 {
     for (string const& needle: _needles)
         if (_haystack.find(needle) != string::npos)
@@ -78,7 +78,8 @@ void FuzzerUtil::testConstantOptimizer(string const& _input, bool _quiet) {
     vector<u256> numbers;
     stringstream sin(_input);
 
-    while (!sin.eof()) {
+    while (!sin.eof())
+    {
         h256 data;
         sin.read(reinterpret_cast<char *>(data.data()), 32);
         numbers.push_back(u256(data));
@@ -87,13 +88,16 @@ void FuzzerUtil::testConstantOptimizer(string const& _input, bool _quiet) {
         cout << "Got " << numbers.size() << " inputs:" << endl;
 
     Assembly assembly;
-    for (u256 const &n: numbers) {
+    for (u256 const &n: numbers)
+    {
         if (!_quiet)
             cout << n << endl;
         assembly.append(n);
     }
-    for (bool isCreation: {false, true}) {
-        for (unsigned runs: {1, 2, 3, 20, 40, 100, 200, 400, 1000}) {
+    for (bool isCreation: {false, true})
+    {
+        for (unsigned runs: {1, 2, 3, 20, 40, 100, 200, 400, 1000})
+        {
             ConstantOptimisationMethod::optimiseConstants(
                     isCreation,
                     runs,
