@@ -92,4 +92,4 @@ message Function {
   required StatementSeq statements = 1;
 }
 
-package sol_fuzzer;
+package yul_fuzzer;
