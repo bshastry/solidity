@@ -15,11 +15,11 @@
 	along with solidity.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <genfiles/test/tools/ossfuzz/yul_proto.pb.h>
+#include <test/tools/ossfuzz/yul_proto.pb.h>
 #include <test/tools/fuzzer_common.h>
 #include <test/tools/ossfuzz/proto_to_yul.h>
 //#include "fuzzer-initialize/fuzzer_initialize.h"
-#include "src/libfuzzer/libfuzzer_macro.h"
+#include <src/libfuzzer/libfuzzer_macro.h>
 
 DEFINE_BINARY_PROTO_FUZZER(const Function& input) {
   auto S = FunctionToString(input);
