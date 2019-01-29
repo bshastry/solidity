@@ -21,6 +21,8 @@
 //#include "fuzzer-initialize/fuzzer_initialize.h"
 #include <src/libfuzzer/libfuzzer_macro.h>
 
+using namespace yul_fuzzer;
+
 DEFINE_BINARY_PROTO_FUZZER(const Function& input) {
   auto S = FunctionToString(input);
   std::cout << S;
