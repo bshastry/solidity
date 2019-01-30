@@ -1,3 +1,4 @@
+link_directories(/src/LPM/src /src/LPM/src/libfuzzer /src/LPM/external.protobuf/lib)
 add_custom_target(ossfuzz)
 add_dependencies(ossfuzz solc_opt_ossfuzz solc_noopt_ossfuzz const_opt_ossfuzz yul_proto_ossfuzz)
 
@@ -13,7 +14,6 @@ target_link_libraries(const_opt_ossfuzz PRIVATE libsolc evmasm FuzzingEngine.a)
 
 add_executable(yul_proto_ossfuzz YulProtoFuzzer.cpp proto_to_yul.cpp yul_proto.pb.cc)
 target_include_directories(yul_proto_ossfuzz PRIVATE /src/libprotobuf-mutator /src/LPM/external.protobuf/include)
-link_directories(yul_proto_ossfuzz /src/LPM/src /src/LPM/src/libfuzzer /src/LPM/external.protobuf/lib)
 target_link_libraries(yul_proto_ossfuzz PRIVATE libsolc evmasm
         protobuf-mutator-libfuzzer.a
         protobuf-mutator.a
