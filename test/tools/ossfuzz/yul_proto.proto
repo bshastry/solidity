@@ -40,6 +40,8 @@ message BinaryOp {
     AND = 6;
     OR = 7;
     EQ = 8;
+    LT = 9;
+    GT = 10;
   };
   required BOp op = 1;
   required Rvalue left = 2;
@@ -50,7 +52,7 @@ message UnaryOp {
   enum UOp {
     NOT = 0;
   }
-  required UOp uop = 1;
+  required UOp op = 1;
   required Rvalue operand = 2;
 }
 
