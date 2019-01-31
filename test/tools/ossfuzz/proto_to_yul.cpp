@@ -57,11 +57,13 @@ std::ostream &operator<<(std::ostream &os, const BinaryOp &x) {
     case BinaryOp::LT: os << "lt(" << x.left() << "," << x.right() << ")"; break;
     case BinaryOp::GT: os << "gt(" << x.left() << "," << x.right() << ")"; break;
   }
+  return os;
 }
 std::ostream &operator<<(std::ostream &os, const UnaryOp &x) {
   switch (x.op()) {
     case UnaryOp::NOT: os << "not(" << x.operand() << ")"; break;
   }
+  return os;
 }
 std::ostream &operator<<(std::ostream &os, const AssignmentStatement &x) {
   return os << x.lvalue() << "=" << x.rvalue() << ";\n";
