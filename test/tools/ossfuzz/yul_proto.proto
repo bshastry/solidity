@@ -30,7 +30,7 @@ message Const {
 }
 
 message BinaryOp {
-  enum Op {
+  enum BOp {
     PLUS = 0;
     MINUS = 1;
     MUL = 2;
@@ -40,15 +40,18 @@ message BinaryOp {
     AND = 6;
     OR = 7;
     EQ = 8;
-    NE = 9;
-    LE = 10;
-    GE = 11;
-    LT = 12;
-    GT = 13;
   };
-  required Op op = 1;
+  required BOp op = 1;
   required Rvalue left = 2;
   required Rvalue right = 3;
+}
+
+message UnaryOp {
+  enum UOp {
+    NOT = 0;
+  }
+  required UOp uop = 1;
+  required Rvalue operand = 2;
 }
 
 message Rvalue {
@@ -56,6 +59,7 @@ message Rvalue {
     VarRef varref = 1;
     Const cons = 2;
     BinaryOp binop = 3;
+    UnaryOp unop = 4;
   }
 }
 

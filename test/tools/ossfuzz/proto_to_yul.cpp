@@ -44,24 +44,24 @@ std::ostream &operator<<(std::ostream &os, const Rvalue &x) {
     return os << "1";
 }
 std::ostream &operator<<(std::ostream &os, const BinaryOp &x) {
-  os << "(" << x.left();
   switch (x.op()) {
-    case BinaryOp::PLUS: os << "+"; break;
-    case BinaryOp::MINUS: os << "-"; break;
-    case BinaryOp::MUL: os << "*"; break;
-    case BinaryOp::DIV: os << "/"; break;
-    case BinaryOp::MOD: os << "%"; break;
-    case BinaryOp::XOR: os << "^"; break;
-    case BinaryOp::AND: os << "&"; break;
-    case BinaryOp::OR: os << "|"; break;
-    case BinaryOp::EQ: os << "=="; break;
-    case BinaryOp::NE: os << "!="; break;
-    case BinaryOp::LE: os << "<="; break;
-    case BinaryOp::GE: os << ">="; break;
-    case BinaryOp::LT: os << "<"; break;
-    case BinaryOp::GT: os << ">"; break;
+    case BinaryOp::PLUS: os << "add(" << x.left() << "," << x.right() << ")"; break;
+    case BinaryOp::MINUS: os << "sub(" << x.left() << "," << x.right() << ")"; break;
+    case BinaryOp::MUL: os << "mul(" << x.left() << "," << x.right() << ")"; break;
+    case BinaryOp::DIV: os << "div(" << x.left() << "," << x.right() << ")"; break;
+    case BinaryOp::MOD: os << "mod(" << x.left() << "," << x.right() << ")"; break;
+    case BinaryOp::XOR: os << "xor(" << x.left() << "," << x.right() << ")"; break;
+    case BinaryOp::AND: os << "and(" << x.left() << "," << x.right() << ")"; break;
+    case BinaryOp::OR: os << "or(" << x.left() << "," << x.right() << ")"; break;
+    case BinaryOp::EQ: os << "eq(" << x.left() << "," << x.right() << ")"; break;
+    case BinaryOp::LT: os << "lt(" << x.left() << "," << x.right() << ")"; break;
+    case BinaryOp::GT: os << "gt(" << x.left() << "," << x.right() << ")"; break;
   }
-  return os << x.right() << ")";
+}
+std::ostream &operator<<(std::ostream &os, const UnaryOp &x) {
+  switch (x.op()) {
+    case UnaryOp::NOT: os << "not(" << x.operand() << ")"; break;
+  }
 }
 std::ostream &operator<<(std::ostream &os, const AssignmentStatement &x) {
   return os << x.lvalue() << "=" << x.rvalue() << ";\n";
