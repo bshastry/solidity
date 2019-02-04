@@ -124,8 +124,8 @@ message StatementSeq {
   repeated Statement statements = 1;
 }
 
-//message Function {
-//  required StatementSeq statements = 1;
-//}
+message Function {
+  required StatementSeq statements = 1;
+}
 
 package yul_fuzzer;

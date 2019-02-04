@@ -21,7 +21,6 @@
 
 namespace yul_fuzzer {
 class Function;
-class LoopFunction;
 
 std::string FunctionToString(const Function &input);
 std::string ProtoToYul(const uint8_t *data, size_t size);

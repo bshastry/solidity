@@ -18,7 +18,6 @@
 #include <test/tools/ossfuzz/yul_proto.pb.h>
 #include <test/tools/fuzzer_common.h>
 #include <test/tools/ossfuzz/proto_to_yul.h>
-//#include "fuzzer-initialize/fuzzer_initialize.h"
 #include <src/libfuzzer/libfuzzer_macro.h>
 
 using namespace yul_fuzzer;

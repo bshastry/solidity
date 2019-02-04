@@ -190,18 +190,17 @@ namespace yul_fuzzer {
 		for (auto &st : x.statements()) os << st;
 		return os;
 	}
-//std::ostream &operator<<(std::ostream &os, const Function &x) {
-//  return os << "void foo(int *a) {\n" << x.statements() << "}\n";
-//}
+	std::ostream &operator<<(std::ostream &os, const Function &x)
+	{
+		return os << "function foo()\n{" << x.statements() << "}\n";
+	}
 
 // ---------------------------------
 
 	std::string FunctionToString(const Function &input)
 	{
 		std::ostringstream os;
-		os << input;
 		return os.str();
-
 	}
 
 	std::string ProtoToYul(const uint8_t *data, size_t size)
