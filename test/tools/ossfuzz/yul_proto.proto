@@ -17,6 +17,32 @@
 
 syntax = "proto2";
 
+// VariableDeclaration =
+//    'let' TypedIdentifierList ( ':=' Expression )?
+// TypedIdentifierList = Identifier ':' TypeName ( ',' Identifier ':' TypeName )*
+// Identifier = [a-zA-Z_$] [a-zA-Z_$0-9]*
+// IdentifierList = Identifier ( ',' Identifier)*
+// TypeName = Identifier | BuiltinTypeName
+// BuiltinTypeName = 'bool' | [us] ( '8' | '32' | '64' | '128' | '256' )
+message VarDecl {
+  enum TypeName {
+    BOOL = 1;
+    U8 = 2;
+    U32 = 3;
+    U64 = 4;
+    U128 = 5;
+    U256 = 6;
+    S8 = 7;
+    S32 = 8;
+    S64 = 9;
+    S128 = 10;
+    S256 = 11;
+  };
+  required int32 id = 1;
+  required TypeName type = 2;
+  required Rvalue expr = 3;
+}
+
 message VarRef {
   required int32 varnum = 1;
 }
@@ -98,8 +124,8 @@ message StatementSeq {
   repeated Statement statements = 1;
 }
 
-message Function {
-  required StatementSeq statements = 1;
-}
+//message Function {
+//  required StatementSeq statements = 1;
+//}
 
 package yul_fuzzer;
