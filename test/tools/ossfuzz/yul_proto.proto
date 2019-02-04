@@ -42,6 +42,8 @@ message BinaryOp {
     EQ = 8;
     LT = 9;
     GT = 10;
+    MSTORE = 11;
+    SSTORE = 12;
   };
   required BOp op = 1;
   required Rvalue left = 2;
@@ -51,6 +53,8 @@ message BinaryOp {
 message UnaryOp {
   enum UOp {
     NOT = 0;
+    MLOAD = 1;
+    SLOAD = 2;
   }
   required UOp op = 1;
   required Rvalue operand = 2;

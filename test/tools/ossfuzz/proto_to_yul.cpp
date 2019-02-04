@@ -56,12 +56,16 @@ std::ostream &operator<<(std::ostream &os, const BinaryOp &x) {
     case BinaryOp::EQ: os << "eq(" << x.left() << "," << x.right() << ")"; break;
     case BinaryOp::LT: os << "lt(" << x.left() << "," << x.right() << ")"; break;
     case BinaryOp::GT: os << "gt(" << x.left() << "," << x.right() << ")"; break;
+    case BinaryOp::MSTORE: os << "mstore(" << x.left() << "," << x.right() << ")"; break;
+    case BinaryOp::SSTORE: os << "sstore(" << x.left() << "," << x.right() << ")"; break;
   }
   return os;
 }
 std::ostream &operator<<(std::ostream &os, const UnaryOp &x) {
   switch (x.op()) {
     case UnaryOp::NOT: os << "not(" << x.operand() << ")"; break;
+    case UnaryOp::MLOAD: os << "mload(" << x.operand() << ")"; break;
+    case UnaryOp::SLOAD: os << "sload(" << x.operand() << ")"; break;
   }
   return os;
 }
