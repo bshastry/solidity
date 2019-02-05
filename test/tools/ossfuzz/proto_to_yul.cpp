@@ -104,43 +104,43 @@ namespace yul_fuzzer {
 
 	std::ostream &operator<<(std::ostream &os, const VarDecl &x)
 	{
-		os << "let x_" << x.id() << " := " << x.expr() << ":";
-		switch (x.type())
-		{
-			case VarDecl::BOOL:
-				os << "bool\n";
-				break;
-			case VarDecl::S8:
-				os << "s8\n";
-				break;
-			case VarDecl::S32:
-				os << "s32\n";
-				break;
-			case VarDecl::S64:
-				os << "s64\n";
-				break;
-			case VarDecl::S128:
-				os << "s128\n";
-				break;
-			case VarDecl::S256:
-				os << "s256\n";
-				break;
-			case VarDecl::U8:
-				os << "u8\n";
-				break;
-			case VarDecl::U32:
-				os << "u32\n";
-				break;
-			case VarDecl::U64:
-				os << "u64\n";
-				break;
-			case VarDecl::U128:
-				os << "u128\n";
-				break;
-			case VarDecl::U256:
-				os << "u256\n";
-				break;
-		}
+		os << "let x_" << x.id() << " := " << x.expr() << "\n";
+//		switch (x.type())
+//		{
+//			case VarDecl::BOOL:
+//				os << "bool\n";
+//				break;
+//			case VarDecl::S8:
+//				os << "s8\n";
+//				break;
+//			case VarDecl::S32:
+//				os << "s32\n";
+//				break;
+//			case VarDecl::S64:
+//				os << "s64\n";
+//				break;
+//			case VarDecl::S128:
+//				os << "s128\n";
+//				break;
+//			case VarDecl::S256:
+//				os << "s256\n";
+//				break;
+//			case VarDecl::U8:
+//				os << "u8\n";
+//				break;
+//			case VarDecl::U32:
+//				os << "u32\n";
+//				break;
+//			case VarDecl::U64:
+//				os << "u64\n";
+//				break;
+//			case VarDecl::U128:
+//				os << "u128\n";
+//				break;
+//			case VarDecl::U256:
+//				os << "u256\n";
+//				break;
+//		}
 		return os;
 	}
 
@@ -191,9 +191,10 @@ namespace yul_fuzzer {
 		for (auto &st : x.statements()) os << st;
 		return os;
 	}
+
 	std::ostream &operator<<(std::ostream &os, const Function &x)
 	{
-		return os << "function foo()\n{" << x.statements() << "}\n";
+		return os << "function foo()\n{\n" << x.statements() << "}\n";
 	}
 
 // ---------------------------------
