@@ -217,7 +217,7 @@ namespace yul_fuzzer {
 	{
 		os << "let a,b := foo(calldataload(0),calldataload(32))\n";
 		os << "sstore(0, a)\n";
-		os << "sstore(32, b)\n"
+		os << "sstore(32, b)\n";
 		return os << "function foo(bar, baz) -> ret1, ret2\n{\n" <<
 		x.statements() << "}\n";
 	}
