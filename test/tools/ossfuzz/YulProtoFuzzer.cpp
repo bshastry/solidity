@@ -15,6 +15,8 @@
 	along with solidity.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <fstream>
+
 #include <test/tools/ossfuzz/yul_proto.pb.h>
 #include <test/tools/fuzzer_common.h>
 #include <test/tools/ossfuzz/proto_to_yul.h>
