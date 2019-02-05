@@ -92,12 +92,6 @@ namespace yul_fuzzer {
 			case BinaryOp::GT:
 				os << "gt(" << x.left() << "," << x.right() << ")";
 				break;
-			case BinaryOp::MSTORE:
-				os << "mstore(" << x.left() << "," << x.right() << ")";
-				break;
-			case BinaryOp::SSTORE:
-				os << "sstore(" << x.left() << "," << x.right() << ")";
-				break;
 		}
 		return os;
 	}
