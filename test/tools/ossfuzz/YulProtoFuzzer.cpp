@@ -20,15 +20,16 @@
 #include <test/tools/ossfuzz/proto_to_yul.h>
 #include <src/libfuzzer/libfuzzer_macro.h>
 
+#include <libsolidity/interface/AssemblyStack.h>
+
 using namespace yul_fuzzer;
 using namespace dev::solidity;
 
 DEFINE_BINARY_PROTO_FUZZER(const Function& input) {
-  auto S = FunctionToString(input);
-  std::string yul_source = S.str();
+  std::string yul_source = FunctionToString(input);
 
   // AssemblyStack entry point
-  AssemblyStack stack(AssemblyStack::constantinople(), AssemblyStack::Language::Yul);
+  AssemblyStack stack(EVMVersion::constantinople(), AssemblyStack::Language::Yul);
 
   // Parse protobuf mutated YUL code
   if (!stack.parseAndAnalyze("source", yul_source))
