@@ -202,6 +202,7 @@ namespace yul_fuzzer {
 	std::string FunctionToString(const Function &input)
 	{
 		std::ostringstream os;
+		os << input;
 		return os.str();
 	}
 
