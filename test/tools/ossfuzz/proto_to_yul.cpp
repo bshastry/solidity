@@ -23,7 +23,7 @@
 
 namespace yul_fuzzer {
 
-// Forward decls.
+	// Forward decls.
 	std::ostream &operator<<(std::ostream &os, const BinaryOp &x);
 
 	std::ostream &operator<<(std::ostream &os, const StatementSeq &x);
@@ -59,10 +59,10 @@ namespace yul_fuzzer {
 	std::ostream &operator<<(std::ostream &os, const BinaryOp &x)
 	{
 		switch (x.op()) {
-			case BinaryOp::PLUS:
+			case BinaryOp::ADD:
 				os << "add(" << x.left() << "," << x.right() << ")";
 				break;
-			case BinaryOp::MINUS:
+			case BinaryOp::SUB:
 				os << "sub(" << x.left() << "," << x.right() << ")";
 				break;
 			case BinaryOp::MUL:
