@@ -105,42 +105,48 @@ namespace yul_fuzzer {
 	std::ostream &operator<<(std::ostream &os, const VarDecl &x)
 	{
 		os << "let x_" << x.id() << " := " << x.expr() << "\n";
-//		switch (x.type())
-//		{
-//			case VarDecl::BOOL:
-//				os << "bool\n";
-//				break;
-//			case VarDecl::S8:
-//				os << "s8\n";
-//				break;
-//			case VarDecl::S32:
-//				os << "s32\n";
-//				break;
-//			case VarDecl::S64:
-//				os << "s64\n";
-//				break;
-//			case VarDecl::S128:
-//				os << "s128\n";
-//				break;
-//			case VarDecl::S256:
-//				os << "s256\n";
-//				break;
-//			case VarDecl::U8:
-//				os << "u8\n";
-//				break;
-//			case VarDecl::U32:
-//				os << "u32\n";
-//				break;
-//			case VarDecl::U64:
-//				os << "u64\n";
-//				break;
-//			case VarDecl::U128:
-//				os << "u128\n";
-//				break;
-//			case VarDecl::U256:
-//				os << "u256\n";
-//				break;
-//		}
+		return os;
+	}
+
+	std::ostream &operator<<(std::ostream &os, const TypedVarDecl &x)
+	{
+		os << "let x_" << x.id();
+		switch (x.type())
+		{
+			case VarDecl::BOOL:
+				os << ": bool := " << x.expr() << " : bool\n";
+				break;
+			case VarDecl::S8:
+				os << ": s8 := " << x.expr() << " : s8\n";
+				break;
+			case VarDecl::S32:
+				os << ": s32 := " << x.expr() << " : s32\n";
+				break;
+			case VarDecl::S64:
+				os << ": s64 := " << x.expr() << " : s64\n";
+				break;
+			case VarDecl::S128:
+				os << ": s128 := " << x.expr() << " : s128\n";
+				break;
+			case VarDecl::S256:
+				os << ": s256 := " << x.expr() << " : s256\n";
+				break;
+			case VarDecl::U8:
+				os << ": u8 := " << x.expr() << " : u8\n";
+				break;
+			case VarDecl::U32:
+				os << ": u32 := " << x.expr() << " : u32\n";
+				break;
+			case VarDecl::U64:
+				os << ": u64 := " << x.expr() << " : u64\n";
+				break;
+			case VarDecl::U128:
+				os << ": u128 := " << x.expr() << " : u128\n";
+				break;
+			case VarDecl::U256:
+				os << ": u256 := " << x.expr() << " : u256\n";
+				break;
+		}
 		return os;
 	}
 
@@ -177,12 +183,27 @@ namespace yul_fuzzer {
 		return os << "while (" << x.cond() << "){\n" << x.body() << "}\n";
 	}
 
+	std::ostream &operator<<(std::ostream &os, const StoreFunc &x)
+	{
+		switch (x.st())
+		{
+			case StoreFunc::MEMORY:
+				os << "mstore(" << x.loc() << ", " << x.val() << ")\n";
+				break;
+			case StoreFunc::STORAGE:
+				os << "sstore(" << x.loc() << ", " << x.val() << ")\n";
+				break;
+		}
+		return os;
+	}
+
 	std::ostream &operator<<(std::ostream &os, const Statement &x)
 	{
 		if (x.has_decl()) return os << x.decl();
 		if (x.has_assignment()) return os << x.assignment();
 		if (x.has_ifelse()) return os << x.ifelse();
 		if (x.has_while_loop()) return os << x.while_loop();
+		if (x.has_storage_func()) return os << x.storage_func();
 		return os << "\n";
 	}
 
@@ -194,7 +215,11 @@ namespace yul_fuzzer {
 
 	std::ostream &operator<<(std::ostream &os, const Function &x)
 	{
-		return os << "function foo()\n{\n" << x.statements() << "}\n";
+		os << "let a,b := foo(calldataload(0),calldataload(32))\n";
+		os << "sstore(0, a)\n";
+		os << "sstore(32, b)\n"
+		return os << "function foo(bar, baz) -> ret1, ret2\n{\n" <<
+		x.statements() << "}\n";
 	}
 
 // ---------------------------------

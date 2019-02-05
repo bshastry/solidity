@@ -25,6 +25,11 @@ syntax = "proto2";
 // TypeName = Identifier | BuiltinTypeName
 // BuiltinTypeName = 'bool' | [us] ( '8' | '32' | '64' | '128' | '256' )
 message VarDecl {
+  required int32 id = 1;
+  required Rvalue expr = 3;
+}
+
+message TypedVarDecl {
   enum TypeName {
     BOOL = 1;
     U8 = 2;
@@ -55,6 +60,24 @@ message Const {
   required int32 val = 1;
 }
 
+message TypedConst {
+  enum TypeName {
+    BOOL = 1;
+    U8 = 2;
+    U32 = 3;
+    U64 = 4;
+    U128 = 5;
+    U256 = 6;
+    S8 = 7;
+    S32 = 8;
+    S64 = 9;
+    S128 = 10;
+    S256 = 11;
+  };
+  required int32 val = 1;
+  required TypeName type = 2;
+}
+
 message BinaryOp {
   enum BOp {
     ADD = 0;
@@ -68,8 +91,6 @@ message BinaryOp {
     EQ = 8;
     LT = 9;
     GT = 10;
-    MSTORE = 11; // does not return anything
-    SSTORE = 12; // does not return anything
   };
   required BOp op = 1;
   required Rvalue left = 2;
@@ -78,12 +99,23 @@ message BinaryOp {
 
 message UnaryOp {
   enum UOp {
-    NOT = 0; // add iszero opcode
+    // add iszero opcode
+    NOT = 0;
     MLOAD = 1;
     SLOAD = 2;
   }
   required UOp op = 1;
   required Rvalue operand = 2;
+}
+
+message StoreFunc {
+  enum Storage {
+    MEMORY = 0;
+    STORAGE = 1;
+  }
+  required Rvalue loc = 1;
+  required Rvalue val = 2;
+  required Storage st = 3;
 }
 
 message Rvalue {
@@ -100,26 +132,25 @@ message AssignmentStatement {
   required Rvalue rvalue = 2;
 }
 
-
 message IfElse {
   required Rvalue cond = 1;
   required StatementSeq if_body = 2;
   required StatementSeq else_body = 3;
 }
 
+// add for loop
 message While {
   required Rvalue cond = 1;
   required StatementSeq body = 2;
 }
 
-// add for
-
 message Statement {
   oneof stmt_oneof {
-    VarDecl             decl = 1;
-    AssignmentStatement assignment = 2;
-    IfElse              ifelse     = 3;
-    While               while_loop = 4;
+    VarDecl             decl          = 1;
+    AssignmentStatement assignment    = 2;
+    IfElse              ifelse        = 3;
+    While               while_loop    = 4;
+    StoreFunc           storage_func  = 5;
   }
 }
 

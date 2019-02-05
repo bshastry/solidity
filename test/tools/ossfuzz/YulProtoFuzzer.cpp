@@ -27,7 +27,8 @@
 using namespace yul_fuzzer;
 using namespace dev::solidity;
 
-DEFINE_BINARY_PROTO_FUZZER(const Function& input) {
+DEFINE_BINARY_PROTO_FUZZER(const Function& input)
+{
   std::string yul_source = FunctionToString(input);
 
   if (const char *dump_path = getenv("PROTO_FUZZER_DUMP_PATH"))
