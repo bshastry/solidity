@@ -202,11 +202,15 @@ namespace yul_fuzzer {
 
 	std::ostream &operator<<(std::ostream &os, const Function &x)
 	{
-		os << "let a,b := foo(calldataload(0),calldataload(32))\n";
-		os << "sstore(0, a)\n";
-		os << "sstore(32, b)\n";
-		return os << "function foo(bar, baz) -> ret1, ret2\n{\n" <<
-		x.statements() << "}\n";
+		os << "{\n"
+		<< "let a,b := foo(calldataload(0),calldataload(32))\n"
+		<< "sstore(0, a)\n"
+		<< "sstore(32, b)\n"
+		<< "function foo(bar, baz) -> ret1, ret2\n"
+		<< "{\n"
+		<< x.statements()
+		<< "}\n"
+		<< "}\n";
 	}
 
 // ---------------------------------
