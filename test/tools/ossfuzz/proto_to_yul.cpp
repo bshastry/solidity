@@ -113,37 +113,37 @@ namespace yul_fuzzer {
 		os << "let x_" << x.id();
 		switch (x.type())
 		{
-			case VarDecl::BOOL:
+			case TypedVarDecl::BOOL:
 				os << ": bool := " << x.expr() << " : bool\n";
 				break;
-			case VarDecl::S8:
+			case TypedVarDecl::S8:
 				os << ": s8 := " << x.expr() << " : s8\n";
 				break;
-			case VarDecl::S32:
+			case TypedVarDecl::S32:
 				os << ": s32 := " << x.expr() << " : s32\n";
 				break;
-			case VarDecl::S64:
+			case TypedVarDecl::S64:
 				os << ": s64 := " << x.expr() << " : s64\n";
 				break;
-			case VarDecl::S128:
+			case TypedVarDecl::S128:
 				os << ": s128 := " << x.expr() << " : s128\n";
 				break;
-			case VarDecl::S256:
+			case TypedVarDecl::S256:
 				os << ": s256 := " << x.expr() << " : s256\n";
 				break;
-			case VarDecl::U8:
+			case TypedVarDecl::U8:
 				os << ": u8 := " << x.expr() << " : u8\n";
 				break;
-			case VarDecl::U32:
+			case TypedVarDecl::U32:
 				os << ": u32 := " << x.expr() << " : u32\n";
 				break;
-			case VarDecl::U64:
+			case TypedVarDecl::U64:
 				os << ": u64 := " << x.expr() << " : u64\n";
 				break;
-			case VarDecl::U128:
+			case TypedVarDecl::U128:
 				os << ": u128 := " << x.expr() << " : u128\n";
 				break;
-			case VarDecl::U256:
+			case TypedVarDecl::U256:
 				os << ": u256 := " << x.expr() << " : u256\n";
 				break;
 		}
