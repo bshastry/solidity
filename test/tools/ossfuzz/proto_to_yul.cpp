@@ -211,6 +211,7 @@ namespace yul_fuzzer {
 		<< x.statements()
 		<< "}\n"
 		<< "}\n";
+		return os;
 	}
 
 // ---------------------------------
