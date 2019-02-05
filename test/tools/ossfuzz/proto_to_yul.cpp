@@ -28,48 +28,6 @@ namespace yul_fuzzer {
 
 	std::ostream &operator<<(std::ostream &os, const StatementSeq &x);
 
-	std::ostream &operator<<(std::ostream &os, const VarDecl &x)
-	{
-		os << "let x_" << x.id() << " := " << x.expr() << ":";
-		switch (x.type())
-		{
-			case VarDecl::BOOL:
-				os << "bool\n";
-				break;
-			case VarDecl::S8:
-				os << "s8\n";
-				break;
-			case VarDecl::S32:
-				os << "s32\n";
-				break;
-			case VarDecl::S64:
-				os << "s64\n";
-				break;
-			case VarDecl::S128:
-				os << "s128\n";
-				break;
-			case VarDecl::S256:
-				os << "s256\n";
-				break;
-			case VarDecl::U8:
-				os << "u8\n";
-				break;
-			case VarDecl::U32:
-				os << "u32\n";
-				break;
-			case VarDecl::U64:
-				os << "u64\n";
-				break;
-			case VarDecl::U128:
-				os << "u128\n";
-				break;
-			case VarDecl::U256:
-				os << "u256\n";
-				break;
-		}
-		return os;
-	}
-
 	// Proto to yul.
 	// Constant is a signed 32-bit integer
 	std::ostream &operator<<(std::ostream &os, const Const &x)
@@ -144,6 +102,48 @@ namespace yul_fuzzer {
 		return os;
 	}
 
+	std::ostream &operator<<(std::ostream &os, const VarDecl &x)
+	{
+		os << "let x_" << x.id() << " := " << x.expr() << ":";
+		switch (x.type())
+		{
+			case VarDecl::BOOL:
+				os << "bool\n";
+				break;
+			case VarDecl::S8:
+				os << "s8\n";
+				break;
+			case VarDecl::S32:
+				os << "s32\n";
+				break;
+			case VarDecl::S64:
+				os << "s64\n";
+				break;
+			case VarDecl::S128:
+				os << "s128\n";
+				break;
+			case VarDecl::S256:
+				os << "s256\n";
+				break;
+			case VarDecl::U8:
+				os << "u8\n";
+				break;
+			case VarDecl::U32:
+				os << "u32\n";
+				break;
+			case VarDecl::U64:
+				os << "u64\n";
+				break;
+			case VarDecl::U128:
+				os << "u128\n";
+				break;
+			case VarDecl::U256:
+				os << "u256\n";
+				break;
+		}
+		return os;
+	}
+
 	std::ostream &operator<<(std::ostream &os, const UnaryOp &x)
 	{
 		switch (x.op()) {
@@ -179,6 +179,7 @@ namespace yul_fuzzer {
 
 	std::ostream &operator<<(std::ostream &os, const Statement &x)
 	{
+		if (x.has_decl()) return os << x.decl();
 		if (x.has_assignment()) return os << x.assignment();
 		if (x.has_ifelse()) return os << x.ifelse();
 		if (x.has_while_loop()) return os << x.while_loop();

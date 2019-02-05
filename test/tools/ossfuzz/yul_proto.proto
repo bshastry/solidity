@@ -114,9 +114,10 @@ message While {
 
 message Statement {
   oneof stmt_oneof {
-    AssignmentStatement assignment = 1;
-    IfElse              ifelse     = 2;
-    While               while_loop = 3;
+    VarDecl             decl = 1;
+    AssignmentStatement assignment = 2;
+    IfElse              ifelse     = 3;
+    While               while_loop = 4;
   }
 }
 
