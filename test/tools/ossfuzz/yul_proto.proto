@@ -132,25 +132,19 @@ message AssignmentStatement {
   required Rvalue rvalue = 2;
 }
 
-message IfElse {
+message IfStmt {
   required Rvalue cond = 1;
   required StatementSeq if_body = 2;
-  required StatementSeq else_body = 3;
 }
 
 // add for loop
-message While {
-  required Rvalue cond = 1;
-  required StatementSeq body = 2;
-}
 
 message Statement {
   oneof stmt_oneof {
     VarDecl             decl          = 1;
     AssignmentStatement assignment    = 2;
-    IfElse              ifelse        = 3;
-    While               while_loop    = 4;
-    StoreFunc           storage_func  = 5;
+    IfStmt              ifstmt        = 3;
+    StoreFunc           storage_func  = 4;
   }
 }
 

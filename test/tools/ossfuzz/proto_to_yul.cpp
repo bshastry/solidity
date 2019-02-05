@@ -165,16 +165,10 @@ namespace yul_fuzzer {
 		return os << x.lvalue() << " := " << x.rvalue() << "\n";
 	}
 
-	std::ostream &operator<<(std::ostream &os, const IfElse &x)
+	std::ostream &operator<<(std::ostream &os, const IfStmt &x)
 	{
-		return os << "if (" << x.cond() << "){\n"
-		          << x.if_body() << "} else { \n"
-		          << x.else_body() << "}\n";
-	}
-
-	std::ostream &operator<<(std::ostream &os, const While &x)
-	{
-		return os << "while (" << x.cond() << "){\n" << x.body() << "}\n";
+		return os << "if " << x.cond() << " {\n"
+		          << x.if_body() << "}\n";
 	}
 
 	std::ostream &operator<<(std::ostream &os, const StoreFunc &x)
@@ -195,8 +189,7 @@ namespace yul_fuzzer {
 	{
 		if (x.has_decl()) return os << x.decl();
 		if (x.has_assignment()) return os << x.assignment();
-		if (x.has_ifelse()) return os << x.ifelse();
-		if (x.has_while_loop()) return os << x.while_loop();
+		if (x.has_ifstmt()) return os << x.ifstmt();
 		if (x.has_storage_func()) return os << x.storage_func();
 		return os << "\n";
 	}
