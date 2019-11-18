@@ -34,6 +34,41 @@ using namespace solidity::langutil;
 using namespace solidity::util;
 using namespace solidity;
 
+string ProtoConverter::dummyExpression()
+{
+	string expression{};
+	string location{};
+	unsigned pseudoRandomNum = m_inputSize / 13;
+	if (varDeclAvailable())
+		location = varRef(pseudoRandomNum);
+	switch (pseudoRandomNum % 4)
+	{
+	case 0:
+		if (location.empty())
+			expression = "mload(0)";
+		else
+			expression = Whiskers(R"(mload(<loc>))")("loc", location).render();
+		break;
+	case 1:
+		if (location.empty())
+			expression = "sload(0)";
+		else
+			expression = Whiskers(R"(sload(<loc>))")("loc", location).render();
+		break;
+	case 2:
+		if (location.empty())
+			expression = "calldataload(0)";
+		else
+			expression = Whiskers(R"(calldataload(<loc>))")("loc", location).render();
+		break;
+	case 3:
+		expression = dictionaryToken();
+		break;
+	}
+	yulAssert(!expression.empty(), "Proto fuzzer: Invalid dummy expression");
+	return expression;
+}
+
 string ProtoConverter::dictionaryToken(HexPrefix _p)
 {
 	std::string token;
@@ -178,20 +213,25 @@ bool ProtoConverter::functionCallNotPossible(FunctionCall_Returns _type)
 		(_type == FunctionCall::MULTIASSIGN && !varDeclAvailable());
 }
 
-void ProtoConverter::visit(VarRef const& _x)
+string ProtoConverter::varRef(unsigned _index)
 {
 	if (m_inFunctionDef)
 	{
 		// Ensure that there is at least one variable declaration to reference in function scope.
 		yulAssert(m_currentFuncVars.size() > 0, "Proto fuzzer: No variables to reference.");
-		m_output << *m_currentFuncVars[_x.varnum() % m_currentFuncVars.size()];
+		return *m_currentFuncVars[_index % m_currentFuncVars.size()];
 	}
 	else
 	{
 		// Ensure that there is at least one variable declaration to reference in nested scopes.
 		yulAssert(m_currentGlobalVars.size() > 0, "Proto fuzzer: No global variables to reference.");
-		m_output << *m_currentGlobalVars[_x.varnum() % m_currentGlobalVars.size()];
+		return *m_currentGlobalVars[_index % m_currentGlobalVars.size()];
 	}
+}
+
+void ProtoConverter::visit(VarRef const& _x)
+{
+	m_output << varRef(_x.varnum());
 }
 
 void ProtoConverter::visit(Expression const& _x)
