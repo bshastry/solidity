@@ -54,6 +54,138 @@ void YulProtoMutator::functionWrapper(
 	}
 }
 
+// Add idempotent OR
+static YPR<Expression> idempotentOr(
+	[](Expression* _message, unsigned _seed)
+	{
+		YPM::functionWrapper<Expression>(
+			[](Expression* _message, YulRandomNumGenerator& _rand)
+			{
+				if (_message->has_binop() && _message->binop().op() == BinaryOp::OR)
+				{
+					// x
+					auto leftOperand = new Expression();
+					leftOperand->CopyFrom(_message->binop().left());
+					// y
+					auto rightOperand = new Expression();
+					rightOperand->CopyFrom(_message->binop().right());
+					auto binop = new BinaryOp();
+					binop->set_op(BinaryOp::OR);
+					auto orOp = new Expression();
+					// or(x, y)
+					orOp->set_allocated_binop(_message->release_binop());
+					switch (_rand() % 4)
+					{
+					// or(x, y) -> or(or(x, y), x)
+					case 0:
+					{
+						// or(or(x, y), x)
+						binop->set_allocated_left(orOp);
+						binop->set_allocated_right(leftOperand);
+						break;
+					}
+					// or(x, y) -> or(x, or(x, y))
+					case 1:
+					{
+						// or(x, or(x, y))
+						binop->set_allocated_left(leftOperand);
+						binop->set_allocated_right(orOp);
+						break;
+					}
+					// or(x, y) -> or(or(x, y), y)
+					case 2:
+					{
+						// or(or(x, y), y)
+						binop->set_allocated_left(orOp);
+						binop->set_allocated_right(rightOperand);
+						break;
+					}
+					// or(x, y) -> or(y, or(x, y))
+					case 3:
+					{
+						// or(y, or(x, y))
+						binop->set_allocated_left(rightOperand);
+						binop->set_allocated_right(orOp);
+						break;
+					}
+					}
+					_message->set_allocated_binop(binop);
+				}
+			},
+			_message,
+			_seed,
+			YPM::s_highIP,
+			"Add idempotent OR expression"
+		);
+	}
+);
+
+// Add idempotent OR
+static YPR<Expression> idempotentAnd(
+	[](Expression* _message, unsigned _seed)
+	{
+	  YPM::functionWrapper<Expression>(
+		  [](Expression* _message, YulRandomNumGenerator& _rand)
+		  {
+			if (_message->has_binop() && _message->binop().op() == BinaryOp::AND)
+			{
+				// x
+				auto leftOperand = new Expression();
+				leftOperand->CopyFrom(_message->binop().left());
+				// y
+				auto rightOperand = new Expression();
+				rightOperand->CopyFrom(_message->binop().right());
+				auto binop = new BinaryOp();
+				binop->set_op(BinaryOp::AND);
+				auto andOp = new Expression();
+				// and(x, y)
+				andOp->set_allocated_binop(_message->release_binop());
+				switch (_rand() % 4)
+				{
+				// and(x, y) -> and(and(x, y), x)
+				case 0:
+				{
+					// and(and(x, y), x)
+					binop->set_allocated_left(andOp);
+					binop->set_allocated_right(leftOperand);
+					break;
+				}
+				// and(x, y) -> and(x, and(x, y))
+				case 1:
+				{
+					// and(x, and(x, y))
+					binop->set_allocated_left(leftOperand);
+					binop->set_allocated_right(andOp);
+					break;
+				}
+				// and(x, y) -> and(and(x, y), y)
+				case 2:
+				{
+					// and(and(x, y), y)
+					binop->set_allocated_left(andOp);
+					binop->set_allocated_right(rightOperand);
+					break;
+				}
+				// and(x, y) -> and(y, and(x, y))
+				case 3:
+				{
+					// and(y, and(x, y))
+					binop->set_allocated_left(rightOperand);
+					binop->set_allocated_right(andOp);
+					break;
+				}
+				}
+				_message->set_allocated_binop(binop);
+			}
+		  },
+		  _message,
+		  _seed,
+		  YPM::s_highIP,
+		  "Add idempotent AND expression"
+	  );
+	}
+);
+
 // Add assignment to m/s/calldataload(0)
 static YPR<AssignmentStatement> assignLoadZero(
 	[](AssignmentStatement* _message, unsigned _seed)
