@@ -884,10 +884,23 @@ static YPR<Block> addFuncDef(
 			[](Block* _message, YulRandomNumGenerator& _rand)
 			{
 				auto funcDef = new FunctionDef();
-				funcDef->set_num_input_params(_rand());
-				funcDef->set_num_output_params(_rand());
+				// TODO: Remove hard coding
+				auto numInputParams = _rand() % 4 + 1;
+				auto numOutputParams = _rand() % 4 + 1;
+				funcDef->set_num_input_params(numInputParams);
+				funcDef->set_num_output_params(numOutputParams);
 				funcDef->set_allocated_block(new Block());
-				// TODO: Add assignments to output params if any
+				if (numOutputParams > 0)
+				{
+					// Output param index starts at numInputParams
+					// Output param index ends at numInputParams + numOutputParams - 1
+					auto outParamIndex = numInputParams + (_rand() % numOutputParams);
+					auto outVarRef = new VarRef();
+					outVarRef->set_varnum(outParamIndex);
+					auto outParamAssign = new AssignmentStatement();
+					outParamAssign->set_allocated_ref_id(outVarRef);
+					funcDef->mutable_block()->add_statements()->set_allocated_assignment(outParamAssign);
+				}
 				_message->add_statements()->set_allocated_funcdef(funcDef);
 			},
 			_message,
