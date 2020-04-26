@@ -280,8 +280,8 @@ static YPR<ForStmt> removeBreakStmt(
 		YPM::functionWrapper<ForStmt>(
 			[](ForStmt* _message, YulRandomNumGenerator&)
 			{
-				if (_message->has_for_body())
-					for (auto& stmt: *_message->mutable_for_body()->mutable_statements())
+				if (_message->has_block())
+					for (auto& stmt: *_message->mutable_block()->mutable_statements())
 						if (stmt.has_breakstmt())
 						{
 							delete stmt.release_breakstmt();
@@ -321,8 +321,8 @@ static YPR<ForStmt> removeContinueStmt(
 		YPM::functionWrapper<ForStmt>(
 			[](ForStmt* _message, YulRandomNumGenerator&)
 			{
-				if (_message->has_for_body())
-					for (auto& stmt: *_message->mutable_for_body()->mutable_statements())
+				if (_message->has_block())
+					for (auto& stmt: *_message->mutable_block()->mutable_statements())
 						if (stmt.has_contstmt())
 						{
 							delete stmt.release_contstmt();
@@ -647,6 +647,125 @@ static YPR<Block> addConstantAssignment(
 	}
 );
 
+template<typename BlockStmt, typename Stmt>
+void addStmtTemplated(BlockStmt* _b)
+{
+	if constexpr (std::is_same_v<std::decay_t<Stmt>, IfStmt>)
+		_b->mutable_block()->add_statements()->set_allocated_ifstmt(new Stmt());
+	else if constexpr (std::is_same_v<std::decay_t<Stmt>, ForStmt>)
+		_b->mutable_block()->add_statements()->set_allocated_forstmt(new Stmt());
+	else if constexpr (std::is_same_v<std::decay_t<Stmt>, BoundedForStmt>)
+		_b->mutable_block()->add_statements()->set_allocated_boundedforstmt(new Stmt());
+	else if constexpr (std::is_same_v<std::decay_t<Stmt>, SwitchStmt>)
+		_b->mutable_block()->add_statements()->set_allocated_switchstmt(new Stmt());
+	else if constexpr (std::is_same_v<std::decay_t<Stmt>, LeaveStmt>)
+		_b->mutable_block()->add_statements()->set_allocated_leave(new Stmt());
+	else if constexpr (std::is_same_v<std::decay_t<Stmt>, BreakStmt>)
+		_b->mutable_block()->add_statements()->set_allocated_breakstmt(new Stmt());
+	else if constexpr (std::is_same_v<std::decay_t<Stmt>, ContinueStmt>)
+		_b->mutable_block()->add_statements()->set_allocated_contstmt(new Stmt());
+	else if constexpr (std::is_same_v<std::decay_t<Stmt>, FunctionCall>)
+		_b->mutable_block()->add_statements()->set_allocated_functioncall(new Stmt());
+	else
+		static_assert(YPM::AlwaysFalse<Stmt>::value, "Yul proto mutator: non-exhaustive visitor.");
+}
+
+template <typename BlockStmt>
+void addStmtSwitch(BlockStmt* _b, YulRandomNumGenerator& _rand)
+{
+	switch (_rand() % 8)
+	{
+	case 0:
+		addStmtTemplated<BlockStmt, IfStmt>(_b);
+		break;
+	case 1:
+		addStmtTemplated<BlockStmt, ForStmt>(_b);
+		break;
+	case 2:
+		addStmtTemplated<BlockStmt, BoundedForStmt>(_b);
+		break;
+	case 3:
+		addStmtTemplated<BlockStmt, SwitchStmt>(_b);
+		break;
+	case 4:
+		addStmtTemplated<BlockStmt, LeaveStmt>(_b);
+		break;
+	case 5:
+		addStmtTemplated<BlockStmt, BreakStmt>(_b);
+		break;
+	case 6:
+		addStmtTemplated<BlockStmt, ContinueStmt>(_b);
+		break;
+	case 7:
+		addStmtTemplated<BlockStmt, FunctionCall>(_b);
+		break;
+	}
+}
+
+static YPR<ForStmt> addControlFlowToFor(
+	[](ForStmt* _message, unsigned _seed)
+	{
+	  YPM::functionWrapper<ForStmt>(
+			[](ForStmt* _message, YulRandomNumGenerator& _rand)
+			{
+				addStmtSwitch<ForStmt>(_message, _rand);
+			},
+			_message,
+			_seed,
+			YPM::s_highIP,
+			"Add control flow statement to for body"
+		);
+	}
+);
+
+static YPR<BoundedForStmt> addControlFlowToBoundedFor(
+	[](BoundedForStmt* _message, unsigned _seed)
+	{
+		YPM::functionWrapper<BoundedForStmt>(
+			[](BoundedForStmt* _message, YulRandomNumGenerator& _rand)
+			{
+				addStmtSwitch<BoundedForStmt>(_message, _rand);
+			},
+			_message,
+			_seed,
+			YPM::s_highIP,
+			"Add control flow statement to bounded for body"
+		);
+	}
+);
+
+static YPR<IfStmt> addControlFlowToIf(
+	[](IfStmt* _message, unsigned _seed)
+	{
+		YPM::functionWrapper<IfStmt>(
+			[](IfStmt* _message, YulRandomNumGenerator& _rand)
+			{
+				addStmtSwitch<IfStmt>(_message, _rand);
+			},
+			_message,
+			_seed,
+			YPM::s_highIP,
+			"Add control flow statement to if body"
+		);
+	}
+);
+
+static YPR<SwitchStmt> addControlFlowToSwitch(
+	[](SwitchStmt* _message, unsigned _seed)
+		{
+			YPM::functionWrapper<SwitchStmt>(
+			[](SwitchStmt* _message, YulRandomNumGenerator& _rand)
+			{
+			  addStmtSwitch<SwitchStmt>(_message, _rand);
+			},
+			_message,
+			_seed,
+			YPM::s_highIP,
+			"Add control flow statement to switch default block"
+			);
+		}
+);
+
 // Add if statement
 static YPR<Block> addIfStmt(
 	[](Block* _message, unsigned _seed)
@@ -663,7 +782,7 @@ static YPR<Block> addIfStmt(
 				ifAssignment->set_allocated_expr(YPM::refExpression(_rand));
 				auto ifBodyStmt = ifBody->add_statements();
 				ifBodyStmt->set_allocated_assignment(ifAssignment);
-				ifStmt->set_allocated_if_body(ifBody);
+				ifStmt->set_allocated_block(ifBody);
 				_message->add_statements()->set_allocated_ifstmt(ifStmt);
 			},
 			_message,
@@ -1293,7 +1412,7 @@ static YPR<BoundedForStmt> addVarRefInForBody(
 			{
 				auto popStmt = new PopStmt();
 				popStmt->set_allocated_expr(YPM::refExpression(_rand));
-				_message->mutable_for_body()->add_statements()->set_allocated_pop(popStmt);
+				_message->mutable_block()->add_statements()->set_allocated_pop(popStmt);
 			},
 			_message,
 			_seed,
