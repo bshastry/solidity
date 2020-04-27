@@ -671,7 +671,7 @@ void addStmtTemplated(BlockStmt* _b)
 }
 
 template <typename BlockStmt>
-void addStmtSwitch(BlockStmt* _b, YulRandomNumGenerator& _rand)
+void addControlFlowStmt(BlockStmt* _b, YulRandomNumGenerator& _rand)
 {
 	switch (_rand() % 8)
 	{
@@ -708,7 +708,7 @@ static YPR<ForStmt> addControlFlowToFor(
 	  YPM::functionWrapper<ForStmt>(
 			[](ForStmt* _message, YulRandomNumGenerator& _rand)
 			{
-				addStmtSwitch<ForStmt>(_message, _rand);
+				addControlFlowStmt<ForStmt>(_message, _rand);
 			},
 			_message,
 			_seed,
@@ -724,7 +724,7 @@ static YPR<BoundedForStmt> addControlFlowToBoundedFor(
 		YPM::functionWrapper<BoundedForStmt>(
 			[](BoundedForStmt* _message, YulRandomNumGenerator& _rand)
 			{
-				addStmtSwitch<BoundedForStmt>(_message, _rand);
+				addControlFlowStmt<BoundedForStmt>(_message, _rand);
 			},
 			_message,
 			_seed,
@@ -740,7 +740,7 @@ static YPR<IfStmt> addControlFlowToIf(
 		YPM::functionWrapper<IfStmt>(
 			[](IfStmt* _message, YulRandomNumGenerator& _rand)
 			{
-				addStmtSwitch<IfStmt>(_message, _rand);
+				addControlFlowStmt<IfStmt>(_message, _rand);
 			},
 			_message,
 			_seed,
@@ -756,7 +756,7 @@ static YPR<SwitchStmt> addControlFlowToSwitch(
 			YPM::functionWrapper<SwitchStmt>(
 			[](SwitchStmt* _message, YulRandomNumGenerator& _rand)
 			{
-			  addStmtSwitch<SwitchStmt>(_message, _rand);
+				addControlFlowStmt<SwitchStmt>(_message, _rand);
 			},
 			_message,
 			_seed,
@@ -764,6 +764,22 @@ static YPR<SwitchStmt> addControlFlowToSwitch(
 			"Add control flow statement to switch default block"
 			);
 		}
+);
+
+static YPR<CaseStmt> addControlFlowToSwitchCase(
+	[](CaseStmt* _message, unsigned _seed)
+	{
+		YPM::functionWrapper<CaseStmt>(
+			[](CaseStmt* _message, YulRandomNumGenerator& _rand)
+			{
+				addControlFlowStmt<CaseStmt>(_message, _rand);
+			},
+			_message,
+			_seed,
+			YPM::s_highIP,
+			"Add control flow statement to switch case block"
+		);
+	}
 );
 
 // Add if statement
@@ -1019,6 +1035,26 @@ static YPR<Block> addFuncDef(
 					auto outParamAssign = new AssignmentStatement();
 					outParamAssign->set_allocated_ref_id(outVarRef);
 					funcDef->mutable_block()->add_statements()->set_allocated_assignment(outParamAssign);
+				}
+				if (numInputParams > 0)
+				{
+					auto inParamIndex = _rand() % numInputParams;
+					auto inVarRef = new VarRef();
+					inVarRef->set_varnum(inParamIndex);
+					auto inExpr = new Expression();
+					inExpr->set_allocated_varref(inVarRef);
+					if (_rand() % 2 == 0)
+					{
+						auto dDCFIf = new IfStmt();
+						dDCFIf->set_allocated_cond(inExpr);
+						funcDef->mutable_block()->add_statements()->set_allocated_ifstmt(dDCFIf);
+					}
+					else
+					{
+						auto dDCFSwitch = new SwitchStmt();
+						dDCFSwitch->set_allocated_switch_expr(inExpr);
+						funcDef->mutable_block()->add_statements()->set_allocated_switchstmt(dDCFSwitch);
+					}
 				}
 				_message->add_statements()->set_allocated_funcdef(funcDef);
 			},
