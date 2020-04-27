@@ -176,11 +176,14 @@ private:
 	/// @param _x Protobuf function call
 	/// @param _name Function name
 	/// @param _numInParams Number of input arguments accepted by function
+	/// @param _newline Boolean flag that  is true if new line to be printed after
+	/// function call, false otherwise
 	template <typename T>
 	void convertFunctionCall(
 		T const& _x,
 		std::string _name,
-		unsigned _numInParams
+		unsigned _numInParams,
+		bool _newline = false
 	);
 
 	/// Prints a Yul formatted variable declaration statement to the output

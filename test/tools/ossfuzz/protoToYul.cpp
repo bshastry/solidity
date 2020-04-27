@@ -237,7 +237,7 @@ void ProtoConverter::visit(FunctionExpr const& _x)
 	if (functionSet.size() > 0)
 	{
 		pair<string, unsigned> chosenFunction = functionSet[_x.index() % functionSet.size()];
-		convertFunctionCall(_x, chosenFunction.first, chosenFunction.second);
+		convertFunctionCall(_x, chosenFunction.first, chosenFunction.second, /*newline=*/false);
 	}
 	else
 	{
@@ -901,12 +901,15 @@ template <typename T>
 void ProtoConverter::convertFunctionCall(
 	T const& _x,
 	std::string _name,
-	unsigned _numInParams
+	unsigned _numInParams,
+	bool _newline
 )
 {
 	m_output << _name << "(";
 	visitFunctionInputParams(_x, _numInParams);
-	m_output << ")\n";
+	m_output << ")";
+	if (_newline)
+		m_output << "\n";
 }
 
 vector<string> ProtoConverter::createVarDecls(unsigned _start, unsigned _end, bool _isAssignment)

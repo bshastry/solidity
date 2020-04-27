@@ -476,6 +476,31 @@ static YPR<ForStmt> uninvertForCondition(
 	}
 );
 
+/// Make for loop condition a function call that returns a single value
+static YPR<ForStmt> funcCallForCondition(
+	[](ForStmt* _message, unsigned _seed)
+	{
+		YPM::functionWrapper<ForStmt>(
+			[](ForStmt* _message, YulRandomNumGenerator& _rand)
+			{
+				if (_message->has_for_cond())
+				{
+					_message->clear_for_cond();
+					auto functionCall = new FunctionExpr();
+					functionCall->set_index(_rand());
+					auto forCondExpr = new Expression();
+					forCondExpr->set_allocated_funcexpr(functionCall);
+					_message->set_allocated_for_cond(forCondExpr);
+				}
+			},
+			_message,
+			_seed,
+			YPM::s_mediumIP,
+			"Function call in for condition added"
+		);
+	}
+);
+
 /// Define an identity function y = x
 static YPR<Block> identityFunction(
 	[](Block* _message, unsigned _seed)
@@ -1318,6 +1343,32 @@ static YPR<Block> addPopCreate(
 	}
 );
 
+// Add pop(f()) where f() -> r is a user-defined function.
+// Assumes that f() already exists, if it does not this turns into pop(constant).
+static YPR<Block> addPopUserFunc(
+	[](Block* _message, unsigned _seed)
+	{
+		YPM::functionWrapper<Block>(
+			[](Block* _message, YulRandomNumGenerator& _rand)
+			{
+			  auto functioncall = new FunctionExpr();
+			  functioncall->set_index(_rand());
+			  // TODO: Configure call args
+//			  YPM::configureCallArgs(FunctionCall::SINGLE, functioncall, _rand);
+			  auto funcExpr = new Expression();
+			  funcExpr->set_allocated_funcexpr(functioncall);
+			  auto popStmt = new PopStmt();
+			  popStmt->set_allocated_expr(funcExpr);
+			  _message->add_statements()->set_allocated_pop(popStmt);
+			},
+			_message,
+			_seed,
+			YPM::s_highIP,
+			"Add pop(f()) statement to statement block"
+		);
+	}
+);
+
 // Add function call in another function's body
 static YPR<FunctionDef> addFuncCallInFuncBody(
 	[](FunctionDef* _message, unsigned _seed)
@@ -1398,6 +1449,26 @@ static YPR<BoundedForStmt> addVarRefInForBody(
 			_seed,
 			YPM::s_mediumIP,
 			"Add variable reference in for loop body"
+		);
+	}
+);
+
+// Mutate expression to a function call
+static YPR<Expression> mutateExprToFuncCall(
+	[](Expression* _message, unsigned _seed)
+	{
+		YPM::functionWrapper<Expression>(
+			[](Expression* _message, YulRandomNumGenerator& _rand)
+			{
+				YPM::clearExpr(_message);
+				auto functionCall = new FunctionExpr();
+				functionCall->set_index(_rand());
+				_message->set_allocated_funcexpr(functionCall);
+			},
+			_message,
+			_seed,
+			YPM::s_highIP,
+			"Mutate expression to function call"
 		);
 	}
 );
