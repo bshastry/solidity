@@ -508,24 +508,20 @@ static YPR<Block> identityFunction(
 	[](Block* _message, unsigned _seed)
 	{
 		YPM::functionWrapper<Block>(
-			[](Block* _message, YulRandomNumGenerator& _rand)
+			[](Block* _message, YulRandomNumGenerator&)
 			{
 				auto functionDef = new FunctionDef();
 				functionDef->set_num_input_params(1);
 				functionDef->set_num_output_params(1);
 				auto functionBlock = new Block();
 				auto assignmentStatement = new AssignmentStatement();
-				auto varRef = YPM::varRef(_rand());
-				assignmentStatement->set_allocated_ref_id(varRef);
+				assignmentStatement->set_allocated_ref_id(YPM::varRef(1));
 				auto rhs = new Expression();
-				auto rhsRef = YPM::varRef(_rand());
-				rhs->set_allocated_varref(rhsRef);
+				rhs->set_allocated_varref(YPM::varRef(0));
 				assignmentStatement->set_allocated_expr(rhs);
-				auto stmt = functionBlock->add_statements();
-				stmt->set_allocated_assignment(assignmentStatement);
+				functionBlock->add_statements()->set_allocated_assignment(assignmentStatement);
 				functionDef->set_allocated_block(functionBlock);
-				auto funcdefStmt = _message->add_statements();
-				funcdefStmt->set_allocated_funcdef(functionDef);
+				_message->add_statements()->set_allocated_funcdef(functionDef);
 			},
 			_message,
 			_seed,
