@@ -57,23 +57,16 @@ message Create {
 }
 
 message FunctionCall {
-  enum Returns {
-    ZERO = 1;
-    SINGLE = 2;
-    MULTIDECL = 3;
-    MULTIASSIGN = 4;
-  }
-  required Returns ret = 1;
   // Indexes an existing function
-  required uint32 func_index = 2;
-  required Expression in_param1 = 3;
-  required Expression in_param2 = 4;
-  required Expression in_param3 = 5;
-  required Expression in_param4 = 6;
-  required VarRef out_param1 = 7;
-  required VarRef out_param2 = 8;
-  required VarRef out_param3 = 9;
-  required VarRef out_param4 = 10;
+  required uint32 func_index = 1;
+  required Expression in_param1 = 2;
+  required Expression in_param2 = 3;
+  required Expression in_param3 = 4;
+  required Expression in_param4 = 5;
+  required VarRef out_param1 = 6;
+  required VarRef out_param2 = 7;
+  required VarRef out_param3 = 8;
+  required VarRef out_param4 = 9;
 }
 
 message TypedVarDecl {
@@ -272,10 +265,9 @@ message Expression {
     UnaryOp unop = 4;
     TernaryOp top = 5;
     NullaryOp nop = 6;
-    FunctionCall func_expr = 7;
-    LowLevelCall lowcall = 8;
-    Create create = 9;
-    UnaryOpData unopdata = 10;
+    LowLevelCall lowcall = 7;
+    Create create = 8;
+    UnaryOpData unopdata = 9;
   }
 }
 

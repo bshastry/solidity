@@ -207,12 +207,6 @@ bool ProtoConverter::varDeclAvailable()
 	}
 }
 
-bool ProtoConverter::functionCallNotPossible(FunctionCall_Returns _type)
-{
-	return _type == FunctionCall::SINGLE ||
-		(_type == FunctionCall::MULTIASSIGN && !varDeclAvailable());
-}
-
 string ProtoConverter::varRef(unsigned _index)
 {
 	if (m_inFunctionDef)
@@ -267,14 +261,6 @@ void ProtoConverter::visit(Expression const& _x)
 		break;
 	case Expression::kNop:
 		visit(_x.nop());
-		break;
-	case Expression::kFuncExpr:
-		// FunctionCall must return a single value, otherwise
-		// we output a trivial expression "1".
-		if (_x.func_expr().ret() == FunctionCall::SINGLE)
-			visit(_x.func_expr());
-		else
-			m_output << dummyExpression();
 		break;
 	case Expression::kLowcall:
 		visit(_x.lowcall());
@@ -870,18 +856,18 @@ void ProtoConverter::visitFunctionInputParams(FunctionCall const& _x, unsigned _
 	case 4:
 		visit(_x.in_param4());
 		m_output << ", ";
-		BOOST_FALLTHROUGH;
+		[[fallthrough]];;
 	case 3:
 		visit(_x.in_param3());
 		m_output << ", ";
-		BOOST_FALLTHROUGH;
+		[[fallthrough]];;
 	case 2:
 		visit(_x.in_param2());
 		m_output << ", ";
-		BOOST_FALLTHROUGH;
+		[[fallthrough]];;
 	case 1:
 		visit(_x.in_param1());
-		BOOST_FALLTHROUGH;
+		[[fallthrough]];;
 	case 0:
 		break;
 	default:
@@ -890,32 +876,15 @@ void ProtoConverter::visitFunctionInputParams(FunctionCall const& _x, unsigned _
 	}
 }
 
-bool ProtoConverter::functionValid(FunctionCall_Returns _type, unsigned _numOutParams)
-{
-	switch (_type)
-	{
-	case FunctionCall::ZERO:
-		return _numOutParams == 0;
-	case FunctionCall::SINGLE:
-		return _numOutParams == 1;
-	case FunctionCall::MULTIDECL:
-	case FunctionCall::MULTIASSIGN:
-		return _numOutParams > 1;
-	}
-}
-
 void ProtoConverter::convertFunctionCall(
 	FunctionCall const& _x,
 	std::string _name,
-	unsigned _numInParams,
-	bool _newLine
+	unsigned _numInParams
 )
 {
 	m_output << _name << "(";
 	visitFunctionInputParams(_x, _numInParams);
-	m_output << ")";
-	if (_newLine)
-		m_output << "\n";
+	m_output << ")\n";
 }
 
 vector<string> ProtoConverter::createVarDecls(unsigned _start, unsigned _end, bool _isAssignment)
@@ -934,7 +903,6 @@ void ProtoConverter::visit(FunctionCall const& _x)
 	bool functionAvailable = m_functionSigMap.size() > 0;
 	unsigned numInParams, numOutParams;
 	string funcName;
-	FunctionCall_Returns funcType = _x.ret();
 	if (functionAvailable)
 	{
 		yulAssert(m_functions.size() > 0, "Proto fuzzer: No function in scope");
@@ -945,94 +913,87 @@ void ProtoConverter::visit(FunctionCall const& _x)
 	}
 	else
 	{
-		// If there are no functions available, calls to functions that
-		// return a single value may be replaced by a dictionary token.
-		if (funcType == FunctionCall::SINGLE)
-			m_output << dummyExpression();
-		return;
-	}
-
-	// If function selected for function call does not meet interface
-	// requirements (num output values) for the function type
-	// specified, then we return early unless it is a function call
-	// that returns a single value (which may be replaced by a
-	// dictionary token.
-	if (!functionValid(funcType, numOutParams))
-	{
-		if (funcType == FunctionCall::SINGLE)
-			m_output << dummyExpression();
 		return;
 	}
 
 	// If we are here, it means that we have at least one valid
 	// function for making the function call
-	switch (funcType)
+	switch (numOutParams)
 	{
-	case FunctionCall::ZERO:
+	case 0:
 		convertFunctionCall(_x, funcName, numInParams);
 		break;
-	case FunctionCall::SINGLE:
-		// Since functions that return a single value are used as expressions
-		// we do not print a newline because it is done by the expression
-		// visitor.
-		convertFunctionCall(_x, funcName, numInParams, /*newLine=*/false);
+	case 1:
+		if (varDeclAvailable())
+		{
+			visit(_x.out_param1());
+			m_output << " := ";
+			convertFunctionCall(_x, funcName, numInParams);
+		}
 		break;
-	case FunctionCall::MULTIDECL:
+	case 2:
+	[[fallthrough]];
+	case 3:
+	[[fallthrough]];
+	case 4:
 	{
 		// Ensure that the chosen function returns at most 4 values
 		yulAssert(
 			numOutParams <= 4,
 			"Proto fuzzer: Function call with too many output params encountered."
 		);
+		// When calling function that returns multiple outputs, choose randomly
+		// between a multi declaration and multi assignment statements
+		if (counter() % 2 == 0)
+		{
+			// Obtain variable name suffix
+			unsigned startIdx = counter();
+			vector<string> varsVec = createVarDecls(
+				startIdx,
+				startIdx + numOutParams,
+				/*isAssignment=*/true
+			);
 
-		// Obtain variable name suffix
-		unsigned startIdx = counter();
-		vector<string> varsVec = createVarDecls(
-			startIdx,
-			startIdx + numOutParams,
-			/*isAssignment=*/true
-		);
+			// Create RHS of multi var decl
+			convertFunctionCall(_x, funcName, numInParams);
+			// Add newly minted vars in the multidecl statement to current scope
+			addVarsToScope(varsVec);
+		}
+		else
+		{
+			// If we do not have variables to assign to, bail out
+			if (!varDeclAvailable())
+				return;
 
-		// Create RHS of multi var decl
-		convertFunctionCall(_x, funcName, numInParams);
-		// Add newly minted vars in the multidecl statement to current scope
-		addVarsToScope(varsVec);
+			// Convert LHS of multi assignment
+			// We reverse the order of out param visits since the order does not matter.
+			// This helps reduce the size of this switch statement.
+			switch (numOutParams)
+			{
+			case 4:
+				visit(_x.out_param4());
+				m_output << ", ";
+				[[fallthrough]];
+			case 3:
+				visit(_x.out_param3());
+				m_output << ", ";
+				[[fallthrough]];
+			case 2:
+				visit(_x.out_param2());
+				m_output << ", ";
+				visit(_x.out_param1());
+				break;
+			default:
+				yulAssert(false, "Proto fuzzer: Function call with too many or too few input parameters.");
+				break;
+			}
+			m_output << " := ";
+
+			// Convert RHS of multi assignment
+			convertFunctionCall(_x, funcName, numInParams);
+		}
 		break;
 	}
-	case FunctionCall::MULTIASSIGN:
-		// Ensure that the chosen function returns at most 4 values
-		yulAssert(
-			numOutParams <= 4,
-			"Proto fuzzer: Function call with too many output params encountered."
-		);
-
-		// Convert LHS of multi assignment
-		// We reverse the order of out param visits since the order does not matter.
-		// This helps reduce the size of this switch statement.
-		switch (numOutParams)
-		{
-		case 4:
-			visit(_x.out_param4());
-			m_output << ", ";
-			BOOST_FALLTHROUGH;
-		case 3:
-			visit(_x.out_param3());
-			m_output << ", ";
-			BOOST_FALLTHROUGH;
-		case 2:
-			visit(_x.out_param2());
-			m_output << ", ";
-			visit(_x.out_param1());
-			break;
-		default:
-			yulAssert(false, "Proto fuzzer: Function call with too many or too few input parameters.");
-			break;
-		}
-		m_output << " := ";
-
-		// Convert RHS of multi assignment
-		convertFunctionCall(_x, funcName, numInParams);
-		break;
 	}
 }
 
@@ -1425,9 +1386,6 @@ void ProtoConverter::visit(Statement const& _x)
 		visit(_x.terminatestmt());
 		break;
 	case Statement::kFunctioncall:
-		// Return early if a function call cannot be created
-		if (functionCallNotPossible(_x.functioncall().ret()))
-			return;
 		visit(_x.functioncall());
 		break;
 	case Statement::kFuncdef:

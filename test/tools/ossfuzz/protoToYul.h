@@ -169,46 +169,15 @@ private:
 	/// in scope
 	bool varDeclAvailable();
 
-	/// Return true if a function call cannot be made, false otherwise.
-	/// @param _type is an enum denoting the type of function call. It
-	/// can be one of NONE, SINGLE, MULTIDECL, MULTIASSIGN.
-	///		NONE -> Function call does not return a value
-	///		SINGLE -> Function call returns a single value
-	///		MULTIDECL -> Function call returns more than one value
-	///		and it is used to create a multi declaration
-	///		statement
-	///		MULTIASSIGN -> Function call returns more than one value
-	///		and it is used to create a multi assignment
-	///		statement
-	/// @return True if the function call cannot be created for one of the
-	/// following reasons
-	//   - It is a SINGLE function call (we reserve SINGLE functions for
-	//   expressions)
-	//   - It is a MULTIASSIGN function call and we do not have any
-	//   variables available for assignment.
-	bool functionCallNotPossible(FunctionCall_Returns _type);
-
-	/// Checks if function call of type @a _type returns the correct number
-	/// of values.
-	/// @param _type Function call type of the function being checked
-	/// @param _numOutParams Number of values returned by the function
-	/// being checked
-	/// @return true if the function returns the correct number of values,
-	/// false otherwise
-	bool functionValid(FunctionCall_Returns _type, unsigned _numOutParams);
-
-	/// Converts protobuf function call to a Yul function call and appends
+	/// Converts protobuf function call to a yul function call and appends
 	/// it to output stream.
 	/// @param _x Protobuf function call
 	/// @param _name Function name
 	/// @param _numInParams Number of input arguments accepted by function
-	/// @param _newLine Flag that prints a new line to the output stream if
-	/// true. Default value for the flag is true.
 	void convertFunctionCall(
 		FunctionCall const& _x,
 		std::string _name,
-		unsigned _numInParams,
-		bool _newLine = true
+		unsigned _numInParams
 	);
 
 	/// Prints a Yul formatted variable declaration statement to the output

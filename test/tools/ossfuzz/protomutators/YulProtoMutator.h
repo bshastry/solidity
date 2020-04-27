@@ -114,7 +114,6 @@ struct YulProtoMutator
 	/// @param _call: Pre-allocated protobuf message of FunctionCall type
 	/// @param _rand: Pseudo-random number generator
 	static void configureCallArgs(
-		FunctionCall_Returns _callType,
 		FunctionCall *_call,
 		YulRandomNumGenerator& _rand
 	);
