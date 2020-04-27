@@ -2079,6 +2079,10 @@ void YPM::clearExpr(Expression* _expr)
 		delete _expr->release_unopdata();
 		_expr->clear_unopdata();
 		break;
+	case Expression::kFuncexpr:
+		delete _expr->release_funcexpr();
+		_expr->clear_funcexpr();
+		break;
 	case Expression::EXPR_ONEOF_NOT_SET:
 		break;
 	}
@@ -2222,6 +2226,24 @@ void YPM::unsetExprMutator(
 			unsetExprMutator(_expr->mutable_create()->mutable_size(), _rand, _mutateExprFunc);
 		break;
 	case Expression::kUnopdata:
+		break;
+	case Expression::kFuncexpr:
+		if (!isSet(_expr->funcexpr().in_param1()))
+			_mutateExprFunc(_expr->mutable_funcexpr()->mutable_in_param1(), _rand());
+		else
+			unsetExprMutator(_expr->mutable_funcexpr()->mutable_in_param1(), _rand, _mutateExprFunc);
+		if (!isSet(_expr->funcexpr().in_param2()))
+			_mutateExprFunc(_expr->mutable_funcexpr()->mutable_in_param2(), _rand());
+		else
+			unsetExprMutator(_expr->mutable_funcexpr()->mutable_in_param2(), _rand, _mutateExprFunc);
+		if (!isSet(_expr->funcexpr().in_param3()))
+			_mutateExprFunc(_expr->mutable_funcexpr()->mutable_in_param3(), _rand());
+		else
+			unsetExprMutator(_expr->mutable_funcexpr()->mutable_in_param3(), _rand, _mutateExprFunc);
+		if (!isSet(_expr->funcexpr().in_param4()))
+			_mutateExprFunc(_expr->mutable_funcexpr()->mutable_in_param4(), _rand());
+		else
+			unsetExprMutator(_expr->mutable_funcexpr()->mutable_in_param4(), _rand, _mutateExprFunc);
 		break;
 	case Expression::EXPR_ONEOF_NOT_SET:
 		_mutateExprFunc(_expr, _rand());

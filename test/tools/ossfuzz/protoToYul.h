@@ -75,6 +75,7 @@ private:
 
 	std::string visit(Literal const&);
 	void visit(VarRef const&);
+	void visit(FunctionExpr const& _x);
 	void visit(Expression const&);
 	void visit(VarDecl const&);
 	void visit(MultiVarDecl const&);
@@ -140,7 +141,8 @@ private:
 		Multiple
 	};
 
-	void visitFunctionInputParams(FunctionCall const&, unsigned);
+	template <typename T>
+	void visitFunctionInputParams(T const&, unsigned);
 	void createFunctionDefAndCall(FunctionDef const&, unsigned, unsigned);
 
 	/// Convert function type to a string to be used while naming a
@@ -174,8 +176,9 @@ private:
 	/// @param _x Protobuf function call
 	/// @param _name Function name
 	/// @param _numInParams Number of input arguments accepted by function
+	template <typename T>
 	void convertFunctionCall(
-		FunctionCall const& _x,
+		T const& _x,
 		std::string _name,
 		unsigned _numInParams
 	);
@@ -335,7 +338,7 @@ private:
 	/// statements can not be created.
 	bool m_inForBodyScope;
 	/// Maximum number of for loops that a test case may contain
-	static auto constexpr s_maxForLoops = 2;
+	static auto constexpr s_maxForLoops = 6;
 	// Index used for naming loop variable of bounded for loops
 	unsigned m_numNestedForLoops;
 	/// Counter for number of for loops

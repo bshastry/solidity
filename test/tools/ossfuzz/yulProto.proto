@@ -257,6 +257,14 @@ message LogFunc {
   required Expression t4 = 7;
 }
 
+message FunctionExpr {
+  required uint64 index = 1;
+  required Expression in_param1 = 2;
+  required Expression in_param2 = 3;
+  required Expression in_param3 = 4;
+  required Expression in_param4 = 5;
+}
+
 message Expression {
   oneof expr_oneof {
     VarRef varref = 1;
@@ -268,6 +276,7 @@ message Expression {
     LowLevelCall lowcall = 7;
     Create create = 8;
     UnaryOpData unopdata = 9;
+    FunctionExpr funcexpr = 10;
   }
 }
 

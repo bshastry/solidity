@@ -228,6 +228,23 @@ void ProtoConverter::visit(VarRef const& _x)
 	m_output << varRef(_x.varnum());
 }
 
+void ProtoConverter::visit(FunctionExpr const& _x)
+{
+	vector<pair<string, unsigned>> functionSet;
+	for (auto const& f: m_functionSigMap)
+		if (f.second.second == 1)
+			functionSet.emplace_back(f.first, f.second.first);
+	if (functionSet.size() > 0)
+	{
+		pair<string, unsigned> chosenFunction = functionSet[_x.index() % functionSet.size()];
+		convertFunctionCall(_x, chosenFunction.first, chosenFunction.second);
+	}
+	else
+	{
+		m_output << dummyExpression();
+	}
+}
+
 void ProtoConverter::visit(Expression const& _x)
 {
 	switch (_x.expr_oneof_case())
@@ -273,6 +290,9 @@ void ProtoConverter::visit(Expression const& _x)
 			visit(_x.unopdata());
 		else
 			m_output << dummyExpression();
+		break;
+	case Expression::kFuncexpr:
+		visit(_x.funcexpr());
 		break;
 	case Expression::EXPR_ONEOF_NOT_SET:
 		m_output << dummyExpression();
@@ -848,7 +868,8 @@ void ProtoConverter::visit(AssignmentStatement const& _x)
 	m_output << "\n";
 }
 
-void ProtoConverter::visitFunctionInputParams(FunctionCall const& _x, unsigned _numInputParams)
+template <typename T>
+void ProtoConverter::visitFunctionInputParams(T const& _x, unsigned _numInputParams)
 {
 	// We reverse the order of function input visits since it helps keep this switch case concise.
 	switch (_numInputParams)
@@ -876,8 +897,9 @@ void ProtoConverter::visitFunctionInputParams(FunctionCall const& _x, unsigned _
 	}
 }
 
+template <typename T>
 void ProtoConverter::convertFunctionCall(
-	FunctionCall const& _x,
+	T const& _x,
 	std::string _name,
 	unsigned _numInParams
 )
@@ -924,11 +946,24 @@ void ProtoConverter::visit(FunctionCall const& _x)
 		convertFunctionCall(_x, funcName, numInParams);
 		break;
 	case 1:
+		// assignment
 		if (varDeclAvailable())
 		{
 			visit(_x.out_param1());
 			m_output << " := ";
 			convertFunctionCall(_x, funcName, numInParams);
+		}
+		// declaration
+		else
+		{
+			unsigned startIdx = counter();
+			vector<string> varsVec = createVarDecls(
+				startIdx,
+				startIdx + numOutParams,
+				/*isAssignment=*/true
+			);
+			convertFunctionCall(_x, funcName, numInParams);
+			addVarsToScope(varsVec);
 		}
 		break;
 	case 2:
