@@ -1411,6 +1411,124 @@ static YPR<FunctionDef> removeFuncCallInFuncBody(
 	}
 );
 
+static YPR<FunctionDef>	writeToOutputParams(
+	[](FunctionDef* _message, unsigned _seed)
+	{
+		YPM::functionWrapper<FunctionDef>(
+			[](FunctionDef* _message, YulRandomNumGenerator& _rand)
+			{
+				unsigned numInputParams = _message->num_input_params();
+				unsigned numOutputParams = _message->num_output_params();
+				if (numOutputParams > 0)
+				{
+					for (auto &s: *_message->mutable_block()->mutable_statements())
+					{
+						// Skip randomly so we do not mutate the same statement
+						if (_rand() % 2 == 0)
+							continue;
+
+						auto stmtType = s.stmt_oneof_case();
+						if (stmtType == Statement::kAssignment)
+						{
+							// Assign to a randomly chosen output parameter
+							s.mutable_assignment()->mutable_ref_id()->set_varnum(
+								numInputParams + (_rand() % numOutputParams)
+							);
+							break;
+						}
+						else if (stmtType == Statement::kFunctioncall)
+						{
+							s.mutable_functioncall()->mutable_out_param1()->set_varnum(
+								numInputParams + (_rand() % numOutputParams)
+							);
+							s.mutable_functioncall()->mutable_out_param2()->set_varnum(
+								numInputParams + (_rand() % numOutputParams)
+							);
+							s.mutable_functioncall()->mutable_out_param3()->set_varnum(
+								numInputParams + (_rand() % numOutputParams)
+							);
+							s.mutable_functioncall()->mutable_out_param4()->set_varnum(
+								numInputParams + (_rand() % numOutputParams)
+							);
+							break;
+						}
+					}
+				}
+			},
+			_message,
+			_seed,
+			YPM::s_highIP,
+			"Mutate assign statements so they write to out param"
+		);
+	}
+);
+
+static YPR<FunctionDef> readFromInputParams(
+	[](FunctionDef* _message, unsigned _seed)
+	{
+		YPM::functionWrapper<FunctionDef>(
+			[](FunctionDef* _message, YulRandomNumGenerator& _rand)
+			{
+				unsigned numInputParams = _message->num_input_params();
+				if (numInputParams > 0)
+				{
+					for (auto &s: *_message->mutable_block()->mutable_statements())
+					{
+						if (_rand() % 2 == 0)
+							continue;
+						auto stmtType = s.stmt_oneof_case();
+						if (stmtType == Statement::kIfstmt)
+						{
+							s.mutable_ifstmt()->clear_cond();
+							auto varRef = new VarRef();
+                            varRef->set_varnum(_rand() % numInputParams);
+							s.mutable_ifstmt()->mutable_cond()->set_allocated_varref(varRef);
+							break;
+						}
+						else if (stmtType == Statement::kSwitchstmt)
+						{
+							s.mutable_switchstmt()->clear_switch_expr();
+							auto varRef = new VarRef();
+							varRef->set_varnum(_rand() % numInputParams);
+							s.mutable_switchstmt()->mutable_switch_expr()->set_allocated_varref(varRef);
+							break;
+						}
+						else if (stmtType == Statement::kForstmt)
+						{
+							s.mutable_forstmt()->clear_for_cond();
+							auto varRef = new VarRef();
+							varRef->set_varnum(_rand() % numInputParams);
+							s.mutable_forstmt()->mutable_for_cond()->set_allocated_varref(varRef);
+							break;
+						}
+						else if (stmtType == Statement::kFunctioncall)
+						{
+							s.mutable_functioncall()->clear_in_param1();
+							s.mutable_functioncall()->clear_in_param2();
+							s.mutable_functioncall()->clear_in_param3();
+							s.mutable_functioncall()->clear_in_param4();
+							auto getVarRef = [&]() -> VarRef* {
+								auto v = new VarRef();
+								v->set_varnum(_rand() % numInputParams);
+								return v;
+							};
+							s.mutable_functioncall()->mutable_in_param1()->set_allocated_varref(getVarRef());
+							s.mutable_functioncall()->mutable_in_param2()->set_allocated_varref(getVarRef());
+							s.mutable_functioncall()->mutable_in_param3()->set_allocated_varref(getVarRef());
+							s.mutable_functioncall()->mutable_in_param4()->set_allocated_varref(getVarRef());
+							break;
+						}
+					}
+				}
+			},
+			_message,
+			_seed,
+			YPM::s_highIP,
+			"Mutate conditional expressions to read from input params"
+		);
+	}
+);
+
 // Add dataoffset/datasize
 static YPR<Expression> addDataExpr(
 	[](Expression* _message, unsigned _seed)
@@ -2299,6 +2417,8 @@ void YPM::unsetExprMutator(
 	case Expression::kUnopdata:
 		break;
 	case Expression::kFuncexpr:
+		if (_expr->funcexpr().index() == 0)
+			_expr->mutable_funcexpr()->set_index(_rand());
 		if (!isSet(_expr->funcexpr().in_param1()))
 			_mutateExprFunc(_expr->mutable_funcexpr()->mutable_in_param1(), _rand());
 		else
