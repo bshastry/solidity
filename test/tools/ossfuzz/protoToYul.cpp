@@ -237,7 +237,7 @@ void ProtoConverter::visit(FunctionExpr const& _x)
 	if (functionSet.size() > 0)
 	{
 		pair<string, unsigned> chosenFunction = functionSet[_x.index() % functionSet.size()];
-		convertFunctionCall(_x, chosenFunction.first, chosenFunction.second, /*newline=*/false);
+		convertFunctionCall(_x, chosenFunction.first, chosenFunction.second);
 	}
 	else
 	{
@@ -954,7 +954,7 @@ void ProtoConverter::visit(FunctionCall const& _x)
 		{
 			visit(_x.out_param1());
 			m_output << " := ";
-			convertFunctionCall(_x, funcName, numInParams);
+			convertFunctionCall(_x, funcName, numInParams, /*newline=*/true);
 		}
 		// declaration
 		else
@@ -965,7 +965,7 @@ void ProtoConverter::visit(FunctionCall const& _x)
 				startIdx + numOutParams,
 				/*isAssignment=*/true
 			);
-			convertFunctionCall(_x, funcName, numInParams);
+			convertFunctionCall(_x, funcName, numInParams, /*newline=*/true);
 			addVarsToScope(varsVec);
 		}
 		break;
@@ -993,7 +993,7 @@ void ProtoConverter::visit(FunctionCall const& _x)
 			);
 
 			// Create RHS of multi var decl
-			convertFunctionCall(_x, funcName, numInParams);
+			convertFunctionCall(_x, funcName, numInParams, /*newline=*/true);
 			// Add newly minted vars in the multidecl statement to current scope
 			addVarsToScope(varsVec);
 		}
@@ -1028,7 +1028,7 @@ void ProtoConverter::visit(FunctionCall const& _x)
 			m_output << " := ";
 
 			// Convert RHS of multi assignment
-			convertFunctionCall(_x, funcName, numInParams);
+			convertFunctionCall(_x, funcName, numInParams, /*newline=*/true);
 		}
 		break;
 	}
