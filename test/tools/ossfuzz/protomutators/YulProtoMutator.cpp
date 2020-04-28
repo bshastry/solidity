@@ -1796,6 +1796,23 @@ static YPR<Block> addStmt(
 	}
 );
 
+/// Add statement to function
+static YPR<FunctionDef> addStmtToFunction(
+	[](FunctionDef* _message, unsigned _seed)
+	{
+		YPM::functionWrapper<FunctionDef>(
+			[](FunctionDef* _message, YulRandomNumGenerator& _rand)
+			{
+			  YPM::addStmt(_message->mutable_block(), _rand);
+			},
+			_message,
+			_seed,
+			YPM::s_highIP,
+			"Add pseudo randomly chosen statement type to function block"
+		);
+	}
+);
+
 void YPM::addArgs(
 	Statement *_stmt,
 	std::function<Expression *(YulRandomNumGenerator&)> _func,
