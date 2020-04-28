@@ -1423,10 +1423,6 @@ static YPR<FunctionDef>	writeToOutputParams(
 				{
 					for (auto &s: *_message->mutable_block()->mutable_statements())
 					{
-						// Skip randomly so we do not mutate the same statement
-						if (_rand() % 2 == 0)
-							continue;
-
 						auto stmtType = s.stmt_oneof_case();
 						if (stmtType == Statement::kAssignment)
 						{
@@ -1474,8 +1470,6 @@ static YPR<FunctionDef> readFromInputParams(
 				{
 					for (auto &s: *_message->mutable_block()->mutable_statements())
 					{
-						if (_rand() % 2 == 0)
-							continue;
 						auto stmtType = s.stmt_oneof_case();
 						if (stmtType == Statement::kIfstmt)
 						{
@@ -1525,6 +1519,113 @@ static YPR<FunctionDef> readFromInputParams(
 			_seed,
 			YPM::s_highIP,
 			"Mutate conditional expressions to read from input params"
+		);
+	}
+);
+
+template <typename BlockStmt>
+void randomiseStmtOrder(BlockStmt* _b, YulRandomNumGenerator& _rand)
+{
+	unsigned numStatements = _b->block().statements_size();
+	auto swapIndex = [&]() { return _rand() % numStatements; };
+	if (numStatements > 1)
+		_b->mutable_block()->mutable_statements()->SwapElements(swapIndex(), swapIndex());
+}
+
+
+static YPR<FunctionDef> randomiseFunctionBlock(
+	[](FunctionDef* _message, unsigned _seed)
+	{
+		YPM::functionWrapper<FunctionDef>(
+			[](FunctionDef* _message, YulRandomNumGenerator& _rand)
+			{
+				randomiseStmtOrder<FunctionDef>(_message, _rand);
+			},
+			_message,
+			_seed,
+			YPM::s_highIP,
+			"Change order of statements in function block"
+		);
+	}
+);
+
+static YPR<IfStmt> randomiseIfBlock(
+	[](IfStmt* _message, unsigned _seed)
+	{
+		YPM::functionWrapper<IfStmt>(
+			[](IfStmt* _message, YulRandomNumGenerator& _rand)
+			{
+				randomiseStmtOrder<IfStmt>(_message, _rand);
+			},
+			_message,
+			_seed,
+			YPM::s_highIP,
+			"Change order of statements in if block"
+		);
+	}
+);
+
+static YPR<SwitchStmt> randomiseSwitchDefaultBlock(
+	[](SwitchStmt* _message, unsigned _seed)
+	{
+		YPM::functionWrapper<SwitchStmt>(
+			[](SwitchStmt* _message, YulRandomNumGenerator& _rand)
+			{
+				randomiseStmtOrder<SwitchStmt>(_message, _rand);
+			},
+			_message,
+			_seed,
+			YPM::s_highIP,
+			"Change order of statements in switch default block"
+		);
+	}
+);
+
+static YPR<CaseStmt> randomiseCaseBlock(
+	[](CaseStmt* _message, unsigned _seed)
+	{
+		YPM::functionWrapper<CaseStmt>(
+			[](CaseStmt* _message, YulRandomNumGenerator& _rand)
+			{
+				randomiseStmtOrder<CaseStmt>(_message, _rand);
+			},
+			_message,
+			_seed,
+			YPM::s_highIP,
+			"Change order of statements in switch-case block"
+		);
+	}
+);
+
+static YPR<Code> randomiseCodeBlock(
+	[](Code* _message, unsigned _seed)
+	{
+		YPM::functionWrapper<Code>(
+			[](Code* _message, YulRandomNumGenerator& _rand)
+			{
+				randomiseStmtOrder<Code>(_message, _rand);
+			},
+			_message,
+			_seed,
+			YPM::s_highIP,
+			"Change order of statements in code block"
+		);
+	}
+);
+
+static YPR<Program> randomiseProgramBlock(
+	[](Program* _message, unsigned _seed)
+	{
+		YPM::functionWrapper<Program>(
+			[](Program* _message, YulRandomNumGenerator& _rand)
+			{
+				if (_message->has_block())
+					randomiseStmtOrder<Program>(_message, _rand);
+			},
+			_message,
+			_seed,
+			YPM::s_highIP,
+			"Change order of statements in program block"
 		);
 	}
 );
