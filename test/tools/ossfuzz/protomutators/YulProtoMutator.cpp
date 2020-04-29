@@ -583,8 +583,7 @@ static YPR<Block> addAssignment(
 				auto rhsExpr = new Expression();
 				rhsExpr->set_allocated_varref(rhs);
 				assignmentStatement->set_allocated_expr(rhsExpr);
-				auto newStmt = _message->add_statements();
-				newStmt->set_allocated_assignment(assignmentStatement);
+				_message->add_statements()->set_allocated_assignment(assignmentStatement);
 			},
 			_message,
 			_seed,
@@ -1421,33 +1420,27 @@ static YPR<FunctionDef>	writeToOutputParams(
 				unsigned numOutputParams = _message->num_output_params();
 				if (numOutputParams > 0)
 				{
-					for (auto &s: *_message->mutable_block()->mutable_statements())
+					if (_rand() % 2 == 0)
 					{
-						auto stmtType = s.stmt_oneof_case();
-						if (stmtType == Statement::kAssignment)
+						// All output params are assigned to
+						for (unsigned i = 0; i < numOutputParams; i++)
 						{
-							// Assign to a randomly chosen output parameter
-							s.mutable_assignment()->mutable_ref_id()->set_varnum(
-								numInputParams + (_rand() % numOutputParams)
-							);
-							break;
+							auto varRef = new VarRef();
+							varRef->set_varnum(numInputParams + i);
+							auto assignment = new AssignmentStatement();
+							assignment->set_allocated_ref_id(varRef);
+							_message->mutable_block()->add_statements()->set_allocated_assignment(assignment);
 						}
-						else if (stmtType == Statement::kFunctioncall)
-						{
-							s.mutable_functioncall()->mutable_out_param1()->set_varnum(
-								numInputParams + (_rand() % numOutputParams)
-							);
-							s.mutable_functioncall()->mutable_out_param2()->set_varnum(
-								numInputParams + (_rand() % numOutputParams)
-							);
-							s.mutable_functioncall()->mutable_out_param3()->set_varnum(
-								numInputParams + (_rand() % numOutputParams)
-							);
-							s.mutable_functioncall()->mutable_out_param4()->set_varnum(
-								numInputParams + (_rand() % numOutputParams)
-							);
-							break;
-						}
+					}
+					else
+					{
+						auto functionCall = new FunctionCall();
+						functionCall->set_func_index(_rand());
+						functionCall->mutable_out_param1()->set_varnum(numInputParams);
+						functionCall->mutable_out_param2()->set_varnum(numInputParams + 1);
+						functionCall->mutable_out_param3()->set_varnum(numInputParams + 2);
+						functionCall->mutable_out_param4()->set_varnum(numInputParams + 3);
+						_message->mutable_block()->add_statements()->set_allocated_functioncall(functionCall);
 					}
 				}
 			},
@@ -1468,50 +1461,47 @@ static YPR<FunctionDef> readFromInputParams(
 				unsigned numInputParams = _message->num_input_params();
 				if (numInputParams > 0)
 				{
-					for (auto &s: *_message->mutable_block()->mutable_statements())
+					// Choose a random input parameter to read from
+					auto varRef = new VarRef();
+					varRef->set_varnum(_rand() % numInputParams);
+					switch (_rand() % 4)
 					{
-						auto stmtType = s.stmt_oneof_case();
-						if (stmtType == Statement::kIfstmt)
-						{
-							s.mutable_ifstmt()->clear_cond();
-							auto varRef = new VarRef();
-                            varRef->set_varnum(_rand() % numInputParams);
-							s.mutable_ifstmt()->mutable_cond()->set_allocated_varref(varRef);
-							break;
-						}
-						else if (stmtType == Statement::kSwitchstmt)
-						{
-							s.mutable_switchstmt()->clear_switch_expr();
-							auto varRef = new VarRef();
-							varRef->set_varnum(_rand() % numInputParams);
-							s.mutable_switchstmt()->mutable_switch_expr()->set_allocated_varref(varRef);
-							break;
-						}
-						else if (stmtType == Statement::kForstmt)
-						{
-							s.mutable_forstmt()->clear_for_cond();
-							auto varRef = new VarRef();
-							varRef->set_varnum(_rand() % numInputParams);
-							s.mutable_forstmt()->mutable_for_cond()->set_allocated_varref(varRef);
-							break;
-						}
-						else if (stmtType == Statement::kFunctioncall)
-						{
-							s.mutable_functioncall()->clear_in_param1();
-							s.mutable_functioncall()->clear_in_param2();
-							s.mutable_functioncall()->clear_in_param3();
-							s.mutable_functioncall()->clear_in_param4();
-							auto getVarRef = [&]() -> VarRef* {
-								auto v = new VarRef();
-								v->set_varnum(_rand() % numInputParams);
-								return v;
-							};
-							s.mutable_functioncall()->mutable_in_param1()->set_allocated_varref(getVarRef());
-							s.mutable_functioncall()->mutable_in_param2()->set_allocated_varref(getVarRef());
-							s.mutable_functioncall()->mutable_in_param3()->set_allocated_varref(getVarRef());
-							s.mutable_functioncall()->mutable_in_param4()->set_allocated_varref(getVarRef());
-							break;
-						}
+					case 0:
+					{
+						auto ifStmt = new IfStmt();
+						ifStmt->mutable_cond()->set_allocated_varref(varRef);
+						_message->mutable_block()->add_statements()->set_allocated_ifstmt(ifStmt);
+						break;
+					}
+					case 1:
+					{
+						auto switchStmt = new SwitchStmt();
+						switchStmt->mutable_switch_expr()->set_allocated_varref(varRef);
+						_message->mutable_block()->add_statements()->set_allocated_switchstmt(switchStmt);
+						break;
+					}
+					case 2:
+					{
+						auto forStmt = new ForStmt();
+						forStmt->mutable_for_cond()->set_allocated_varref(varRef);
+						_message->mutable_block()->add_statements()->set_allocated_forstmt(forStmt);
+						break;
+					}
+					case 3:
+					{
+						auto functionCall = new FunctionCall();
+						auto getVarRef = [&]() -> VarRef* {
+						  auto v = new VarRef();
+						  v->set_varnum(_rand() % numInputParams);
+						  return v;
+						};
+						functionCall->mutable_in_param1()->set_allocated_varref(varRef);
+						functionCall->mutable_in_param2()->set_allocated_varref(getVarRef());
+						functionCall->mutable_in_param3()->set_allocated_varref(getVarRef());
+						functionCall->mutable_in_param4()->set_allocated_varref(getVarRef());
+						_message->mutable_block()->add_statements()->set_allocated_functioncall(functionCall);
+						break;
+					}
 					}
 				}
 			},

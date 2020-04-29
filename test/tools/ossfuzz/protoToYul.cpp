@@ -946,7 +946,7 @@ void ProtoConverter::visit(FunctionCall const& _x)
 	switch (numOutParams)
 	{
 	case 0:
-		convertFunctionCall(_x, funcName, numInParams);
+		convertFunctionCall(_x, funcName, numInParams, /*newline=*/true);
 		break;
 	case 1:
 		// assignment
