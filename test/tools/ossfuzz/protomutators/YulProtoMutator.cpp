@@ -204,6 +204,60 @@ static YPR<AssignmentStatement> assignLoadZero(
 	}
 );
 
+static YPR<Expression> mutateExpr(
+	[](Expression* _message, unsigned _seed)
+	{
+		YPM::functionWrapper<Expression>(
+			[](Expression* _message, YulRandomNumGenerator& _rand)
+			{
+				YPM::clearExpr(_message);
+				switch (_rand() % 5)
+				{
+				case 0:
+				{
+					auto tmp = YPM::binopExpression(_rand);
+					_message->CopyFrom(*tmp);
+					delete tmp;
+					break;
+				}
+				case 1:
+				{
+					auto tmp = YPM::refExpression(_rand);
+					_message->CopyFrom(*tmp);
+					delete tmp;
+					break;
+				}
+				case 2:
+				{
+					auto tmp = YPM::litExpression(_rand);
+					_message->CopyFrom(*tmp);
+					delete tmp;
+					break;
+				}
+				case 3:
+				{
+					auto tmp = YPM::loadExpression(_rand);
+					_message->CopyFrom(*tmp);
+					delete tmp;
+					break;
+				}
+				case 4:
+				{
+					auto tmp = YPM::loadFromZero(_rand);
+					_message->CopyFrom(*tmp);
+					delete tmp;
+					break;
+				}
+				}
+			},
+			_message,
+			_seed,
+			YPM::s_highIP,
+			"Mutate expression"
+		);
+	}
+);
+
 // Invert condition of an if statement
 static YPR<IfStmt> invertIfCondition(
 	[](IfStmt* _message, unsigned _seed)
