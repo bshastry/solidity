@@ -1013,8 +1013,8 @@ static YPR<Block> addFuncDef(
 			{
 				auto funcDef = new FunctionDef();
 				// TODO: Remove hard coding
-				auto numInputParams = _rand() % 4 + 1;
-				auto numOutputParams = _rand() % 4 + 1;
+				auto numInputParams = _rand() % 5;
+				auto numOutputParams = _rand() % 5;
 				funcDef->set_num_input_params(numInputParams);
 				funcDef->set_num_output_params(numOutputParams);
 				funcDef->set_allocated_block(new Block());
@@ -1416,8 +1416,8 @@ static YPR<FunctionDef>	writeToOutputParams(
 		YPM::functionWrapper<FunctionDef>(
 			[](FunctionDef* _message, YulRandomNumGenerator& _rand)
 			{
-				unsigned numInputParams = _message->num_input_params();
-				unsigned numOutputParams = _message->num_output_params();
+				unsigned numInputParams = _message->num_input_params() % 5;
+				unsigned numOutputParams = _message->num_output_params() % 5;
 				if (numOutputParams > 0)
 				{
 					if (_rand() % 2 == 0)
@@ -1458,7 +1458,7 @@ static YPR<FunctionDef> readFromInputParams(
 		YPM::functionWrapper<FunctionDef>(
 			[](FunctionDef* _message, YulRandomNumGenerator& _rand)
 			{
-				unsigned numInputParams = _message->num_input_params();
+				unsigned numInputParams = _message->num_input_params() % 5;
 				if (numInputParams > 0)
 				{
 					// Choose a random input parameter to read from
@@ -1490,15 +1490,15 @@ static YPR<FunctionDef> readFromInputParams(
 					case 3:
 					{
 						auto functionCall = new FunctionCall();
-						auto getVarRef = [&]() -> VarRef* {
+						auto getVarRef = [](YulRandomNumGenerator& _rand, unsigned _numInputParams) -> VarRef* {
 						  auto v = new VarRef();
-						  v->set_varnum(_rand() % numInputParams);
+						  v->set_varnum(_rand() % _numInputParams);
 						  return v;
 						};
 						functionCall->mutable_in_param1()->set_allocated_varref(varRef);
-						functionCall->mutable_in_param2()->set_allocated_varref(getVarRef());
-						functionCall->mutable_in_param3()->set_allocated_varref(getVarRef());
-						functionCall->mutable_in_param4()->set_allocated_varref(getVarRef());
+						functionCall->mutable_in_param2()->set_allocated_varref(getVarRef(_rand, numInputParams));
+						functionCall->mutable_in_param3()->set_allocated_varref(getVarRef(_rand, numInputParams));
+						functionCall->mutable_in_param4()->set_allocated_varref(getVarRef(_rand, numInputParams));
 						_message->mutable_block()->add_statements()->set_allocated_functioncall(functionCall);
 						break;
 					}
