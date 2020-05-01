@@ -457,6 +457,65 @@ static YPR<Block> addStoreToZero(
 	}
 );
 
+static YPR<Block> cyclicFunctions(
+	[](Block* _message, unsigned _seed)
+	{
+		YPM::functionWrapper<Block>(
+			[](Block* _message, YulRandomNumGenerator&)
+			{
+				auto f1 = new FunctionDef();
+				auto f2 = new FunctionDef();
+				auto f3 = new FunctionDef();
+
+				auto f1callsf2 = new FunctionCall();
+				f1callsf2->set_func_index(1);
+				auto f2callsf3 = new FunctionCall();
+				f2callsf3->set_func_index(2);
+				auto f3callsf1 = new FunctionCall();
+				f3callsf1->set_func_index(0);
+
+				f1->mutable_block()->add_statements()->set_allocated_functioncall(f1callsf2);
+				f2->mutable_block()->add_statements()->set_allocated_functioncall(f2callsf3);
+				f3->mutable_block()->add_statements()->set_allocated_functioncall(f3callsf1);
+				_message->add_statements()->set_allocated_funcdef(f1);
+				_message->add_statements()->set_allocated_funcdef(f2);
+				_message->add_statements()->set_allocated_funcdef(f3);
+			},
+			_message,
+			_seed,
+			YPM::s_highIP,
+			"Add cyclic calls"
+		);
+	}
+);
+
+static YPR<Block> callFunctionWithInfLoop(
+	[](Block* _message, unsigned _seed)
+	{
+		YPM::functionWrapper<Block>(
+			[](Block* _message, YulRandomNumGenerator&)
+			{
+				auto f1 = new FunctionDef();
+				f1->set_num_input_params(0);
+				f1->set_num_output_params(1);
+				f1->set_force_call(true);
+				auto f1callsf2 = new FunctionCall();
+				f1callsf2->set_func_index(1);
+				f1->mutable_block()->add_statements()->set_allocated_functioncall(f1callsf2);
+
+				auto f2 = new FunctionDef();
+				f2->mutable_block()->add_statements()->set_allocated_forstmt(new ForStmt());
+				_message->add_statements()->set_allocated_funcdef(f1);
+				_message->add_statements()->set_allocated_funcdef(f2);
+			},
+			_message,
+			_seed,
+			YPM::s_highIP,
+			"Call function with infinite loop"
+		);
+	}
+);
+
 static YPR<Block> removeStore(
 	[](Block* _message, unsigned _seed)
 	{

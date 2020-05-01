@@ -72,17 +72,9 @@ string ProtoConverter::dummyExpression()
 string ProtoConverter::dictionaryToken(HexPrefix _p)
 {
 	std::string token;
-	// If dictionary constant is requested while converting
-	// for loop condition, then return zero so that we don't
-	// generate infinite for loops.
-	if (m_inForCond)
-		token = "0";
-	else
-	{
-		unsigned indexVar = m_inputSize * m_inputSize + counter();
-		token = hexDictionary[indexVar % hexDictionary.size()];
-		yulAssert(token.size() <= 64, "Proto Fuzzer: Dictionary token too large");
-	}
+	unsigned indexVar = m_inputSize * m_inputSize + counter();
+	token = hexDictionary[indexVar % hexDictionary.size()];
+	yulAssert(token.size() <= 64, "Proto Fuzzer: Dictionary token too large");
 
 	return _p == HexPrefix::Add ? "0x" + token : token;
 }
@@ -259,13 +251,7 @@ void ProtoConverter::visit(Expression const& _x)
 			visit(_x.varref());
 		break;
 	case Expression::kCons:
-		// If literal expression describes for-loop condition
-		// then force it to zero, so we don't generate infinite
-		// for loops
-		if (m_inForCond)
-			m_output << "0";
-		else
-			m_output << visit(_x.cons());
+		m_output << visit(_x.cons());
 		break;
 	case Expression::kBinop:
 		visit(_x.binop());
@@ -1155,14 +1141,11 @@ void ProtoConverter::visit(ForStmt const& _x)
 	m_inForBodyScope = false;
 	m_inForInitScope = true;
 	m_forInitScopeExtEnabled = true;
-	m_inForCond = false;
 	m_output << "for ";
 	visit(_x.for_init());
 	m_inForInitScope = false;
 	m_forInitScopeExtEnabled = wasForInitScopeExtEnabled;
-	m_inForCond = true;
 	visit(_x.for_cond());
-	m_inForCond = false;
 	visit(_x.for_post());
 	m_inForBodyScope = true;
 	visit(_x.block());

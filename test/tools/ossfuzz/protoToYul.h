@@ -44,7 +44,6 @@ public:
 		m_globalVars = std::vector<std::vector<std::string>>{};
 		m_inForBodyScope = false;
 		m_inForInitScope = false;
-		m_inForCond = false;
 		m_numNestedForLoops = 0;
 		m_numForLoops = 0;
 		m_counter = 0;
@@ -349,9 +348,6 @@ private:
 	/// Predicate to keep track of for loop init scope. If true, variable
 	/// or function declarations can not be created.
 	bool m_inForInitScope;
-	/// Flag that is true while converting for loop condition,
-	/// false otherwise.
-	bool m_inForCond;
 	/// Monotonically increasing counter
 	unsigned m_counter;
 	/// Size of protobuf input
