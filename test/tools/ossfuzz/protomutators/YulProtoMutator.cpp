@@ -485,6 +485,246 @@ static YPR<Block> storeToLoadFrom(
 	}
 );
 
+void movableExpr(Expression* _expr, YulRandomNumGenerator& _rand)
+{
+	auto e = new Expression();
+	e->CopyFrom(*_expr);
+	YPM::clearExpr(_expr);
+	auto b = new BinaryOp();
+	switch (_rand() % 52)
+	{
+	// sub(x,x)
+	case 0:
+	{
+		b->set_op(BinaryOp::SUB);
+		b->set_allocated_left(e);
+		auto copyOfE = new Expression();
+		copyOfE->CopyFrom(*e);
+		b->set_allocated_right(copyOfE);
+		_expr->set_allocated_binop(b);
+		break;
+	}
+	// div (x,0)
+	case 1:
+	{
+		b->set_op(BinaryOp::DIV);
+		b->set_allocated_left(e);
+		auto zeroLit = new Expression();
+		zeroLit->set_allocated_cons(YPM::intLiteral(0));
+		b->set_allocated_right(zeroLit);
+		_expr->set_allocated_binop(b);
+		break;
+	}
+	// div(0,x)
+	case 2:
+	{
+		b->set_op(BinaryOp::DIV);
+		auto zeroLit = new Expression();
+		zeroLit->set_allocated_cons(YPM::intLiteral(0));
+		b->set_allocated_left(zeroLit);
+		b->set_allocated_right(e);
+		_expr->set_allocated_binop(b);
+		break;
+	}
+	// mul(x,0)
+	case 3:
+	{
+		b->set_op(BinaryOp::MUL);
+		auto zeroLit = new Expression();
+		zeroLit->set_allocated_cons(YPM::intLiteral(0));
+		b->set_allocated_left(e);
+		b->set_allocated_right(zeroLit);
+		_expr->set_allocated_binop(b);
+		break;
+	}
+	// mul(0,x)
+	case 4:
+	{
+		b->set_op(BinaryOp::MUL);
+		auto zeroLit = new Expression();
+		zeroLit->set_allocated_cons(YPM::intLiteral(0));
+		b->set_allocated_left(zeroLit);
+		b->set_allocated_right(e);
+		_expr->set_allocated_binop(b);
+		break;
+	}
+	// sdiv(x,0)
+	case 5:
+	{
+		b->set_op(BinaryOp::SDIV);
+		auto zeroLit = new Expression();
+		zeroLit->set_allocated_cons(YPM::intLiteral(0));
+		b->set_allocated_left(e);
+		b->set_allocated_right(zeroLit);
+		_expr->set_allocated_binop(b);
+		break;
+	}
+	// sdiv(0,x)
+	case 6:
+	{
+		b->set_op(BinaryOp::SDIV);
+		auto zeroLit = new Expression();
+		zeroLit->set_allocated_cons(YPM::intLiteral(0));
+		b->set_allocated_left(zeroLit);
+		b->set_allocated_right(e);
+		_expr->set_allocated_binop(b);
+		break;
+	}
+	// and(x,0)
+	case 7:
+	{
+		b->set_op(BinaryOp::AND);
+		auto zeroLit = new Expression();
+		zeroLit->set_allocated_cons(YPM::intLiteral(0));
+		b->set_allocated_left(e);
+		b->set_allocated_right(zeroLit);
+		_expr->set_allocated_binop(b);
+		break;
+	}
+	// and(0,x)
+	case 8:
+	{
+		b->set_op(BinaryOp::AND);
+		auto zeroLit = new Expression();
+		zeroLit->set_allocated_cons(YPM::intLiteral(0));
+		b->set_allocated_left(zeroLit);
+		b->set_allocated_right(e);
+		_expr->set_allocated_binop(b);
+		break;
+	}
+	// or(x, not(0))
+	case 9:
+	{
+		b->set_op(BinaryOp::XOR);
+		auto zeroLit = new Expression();
+		zeroLit->set_allocated_cons(YPM::intLiteral(0));
+		b->set_allocated_left(e);
+		auto notOp = new UnaryOp();
+		notOp->set_op(UnaryOp::NOT);
+		notOp->set_allocated_operand(zeroLit);
+		auto notExpr = new Expression();
+		notExpr->set_allocated_unop(notOp);
+		b->set_allocated_right(notExpr);
+		_expr->set_allocated_binop(b);
+		break;
+	}
+	// or(not(0), x)
+	case 10:
+	{
+		b->set_op(BinaryOp::XOR);
+		auto zeroLit = new Expression();
+		zeroLit->set_allocated_cons(YPM::intLiteral(0));
+		b->set_allocated_right(e);
+		auto notOp = new UnaryOp();
+		notOp->set_op(UnaryOp::NOT);
+		notOp->set_allocated_operand(zeroLit);
+		auto notExpr = new Expression();
+		notExpr->set_allocated_unop(notOp);
+		b->set_allocated_left(notExpr);
+		_expr->set_allocated_binop(b);
+		break;
+	}
+	// mod(x,0)
+	case 11:
+	{
+		b->set_op(BinaryOp::MOD);
+		auto zeroLit = new Expression();
+		zeroLit->set_allocated_cons(YPM::intLiteral(0));
+		b->set_allocated_left(e);
+		b->set_allocated_right(zeroLit);
+		_expr->set_allocated_binop(b);
+		break;
+	}
+	// mod(0,x)
+	case 12:
+	{
+		b->set_op(BinaryOp::MOD);
+		auto zeroLit = new Expression();
+		zeroLit->set_allocated_cons(YPM::intLiteral(0));
+		b->set_allocated_left(zeroLit);
+		b->set_allocated_right(e);
+		_expr->set_allocated_binop(b);
+		break;
+	}
+	// shl(x,0)
+	case 13:
+	{
+		b->set_op(BinaryOp::SHL);
+		auto zeroLit = new Expression();
+		zeroLit->set_allocated_cons(YPM::intLiteral(0));
+		b->set_allocated_left(e);
+		b->set_allocated_right(zeroLit);
+		_expr->set_allocated_binop(b);
+		break;
+	}
+	// shr(x,0)
+	default:
+	{
+		b->set_op(BinaryOp::SHR);
+		auto zeroLit = new Expression();
+		zeroLit->set_allocated_cons(YPM::intLiteral(0));
+		b->set_allocated_left(e);
+		b->set_allocated_right(zeroLit);
+		_expr->set_allocated_binop(b);
+		break;
+	}
+	}
+}
+
+static YPR<Expression> movableExprMutation(
+	[](Expression* _message, unsigned _seed)
+	{
+		YPM::functionWrapper<Expression>(
+			[](Expression* _message, YulRandomNumGenerator& _rand)
+			{
+				movableExpr(_message, _rand);
+			},
+			_message,
+			_seed,
+			13,
+			"Mutate to movable expression"
+		);
+	}
+);
+
+static YPR<Block> nonmovableFunction(
+	[](Block* _message, unsigned _seed)
+	{
+		YPM::functionWrapper<Block>(
+			[](Block* _message, YulRandomNumGenerator&)
+			{
+				auto f = new FunctionDef();
+				f->set_num_input_params(0);
+			    f->set_num_output_params(1);
+				f->mutable_block()->add_statements()->set_allocated_storage_func(new StoreFunc());
+				auto s = new StoreFunc();
+				s->set_st(StoreFunc::MSTORE);
+				auto call1 = new FunctionExpr();
+				call1->set_index(0);
+				auto call1expr = new Expression();
+				call1expr->set_allocated_funcexpr(call1);
+				auto call2 = new FunctionExpr();
+				call2->CopyFrom(*call1);
+				auto call2expr = new Expression();
+				call2expr->set_allocated_funcexpr(call2);
+				auto sub = new BinaryOp();
+				sub->set_op(BinaryOp::SUB);
+				sub->set_allocated_left(call1expr);
+				sub->set_allocated_right(call2expr);
+				auto subExpr = new Expression();
+				subExpr->set_allocated_binop(sub);
+				s->set_allocated_val(subExpr);
+				_message->add_statements()->set_allocated_funcdef(f);
+				_message->add_statements()->set_allocated_storage_func(s);
+			},
+			_message,
+			_seed,
+			13,
+			"Add simple op with nonmovable function"
+		);
+	}
+);
+
 /// Add m/sstore(0, variable)
 static YPR<Block> addStoreToZero(
 	[](Block* _message, unsigned _seed)
