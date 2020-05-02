@@ -465,7 +465,7 @@ static YPR<Block> storeToLoadFrom(
 				store->set_allocated_val(new Expression());
 				bool coinFlip = _rand() % 2 == 0;
 				store->set_st(coinFlip ? StoreFunc::MSTORE : StoreFunc::SSTORE);
-				auto load = new VarDecl();
+				auto assign = new AssignmentStatement();
 				auto copyOfE = new Expression();
 				copyOfE->CopyFrom(*e);
 				auto loadOp = new UnaryOp();
@@ -473,9 +473,10 @@ static YPR<Block> storeToLoadFrom(
 				loadOp->set_allocated_operand(copyOfE);
 				auto loadExpr = new Expression();
 				loadExpr->set_allocated_unop(loadOp);
-				load->set_allocated_expr(loadExpr);
+				assign->set_allocated_expr(loadExpr);
+				assign->set_allocated_ref_id(YPM::varRef(_rand));
 				_message->add_statements()->set_allocated_storage_func(store);
-				_message->add_statements()->set_allocated_decl(load);
+				_message->add_statements()->set_allocated_assignment(assign);
 			},
 			_message,
 			_seed,
