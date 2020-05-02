@@ -435,6 +435,56 @@ static YPR<UnaryOp> removeLoad(
 	}
 );
 
+static YPR<Block> storeToLoadFrom(
+	[](Block* _message, unsigned _seed)
+	{
+		YPM::functionWrapper<Block>(
+			[](Block* _message, YulRandomNumGenerator& _rand)
+			{
+				Expression* e;
+				switch (_rand() % 5)
+				{
+				case 0:
+					e = YPM::binopExpression(_rand);
+					break;
+				case 1:
+					e = YPM::loadExpression(_rand);
+					break;
+				case 2:
+					e = YPM::loadFromZero(_rand);
+					break;
+				case 3:
+					e = YPM::litExpression(_rand);
+					break;
+				case 4:
+					e = YPM::refExpression(_rand);
+					break;
+				}
+				auto store = new StoreFunc();
+				store->set_allocated_loc(e);
+				store->set_allocated_val(new Expression());
+				bool coinFlip = _rand() % 2 == 0;
+				store->set_st(coinFlip ? StoreFunc::MSTORE : StoreFunc::SSTORE);
+				auto load = new VarDecl();
+				auto copyOfE = new Expression();
+				copyOfE->CopyFrom(*e);
+				auto loadOp = new UnaryOp();
+				loadOp->set_op(coinFlip ? UnaryOp::MLOAD : UnaryOp::SLOAD);
+				loadOp->set_allocated_operand(copyOfE);
+				auto loadExpr = new Expression();
+				loadExpr->set_allocated_unop(loadOp);
+				load->set_allocated_expr(loadExpr);
+				_message->add_statements()->set_allocated_storage_func(store);
+				_message->add_statements()->set_allocated_decl(load);
+			},
+			_message,
+			_seed,
+			YPM::s_highIP,
+			"Store to and load from same location"
+		);
+	}
+);
+
 /// Add m/sstore(0, variable)
 static YPR<Block> addStoreToZero(
 	[](Block* _message, unsigned _seed)
