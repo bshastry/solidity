@@ -491,7 +491,7 @@ void movableExpr(Expression* _expr, YulRandomNumGenerator& _rand)
 	e->CopyFrom(*_expr);
 	YPM::clearExpr(_expr);
 	auto b = new BinaryOp();
-	switch (_rand() % 52)
+	switch (_rand() % 27)
 	{
 	// sub(x,x)
 	case 0:
@@ -658,7 +658,7 @@ void movableExpr(Expression* _expr, YulRandomNumGenerator& _rand)
 		break;
 	}
 	// shr(x,0)
-	default:
+	case 14:
 	{
 		b->set_op(BinaryOp::SHR);
 		auto zeroLit = new Expression();
@@ -668,6 +668,228 @@ void movableExpr(Expression* _expr, YulRandomNumGenerator& _rand)
 		_expr->set_allocated_binop(b);
 		break;
 	}
+	// gt(x,not(0))
+	case 15:
+	{
+		auto zeroLit = new Expression();
+		zeroLit->set_allocated_cons(YPM::intLiteral(0));
+		auto notOp = new UnaryOp();
+		notOp->set_op(UnaryOp::NOT);
+		notOp->set_allocated_operand(zeroLit);
+		auto notExpr = new Expression();
+		notExpr->set_allocated_unop(notOp);
+		b->set_op(BinaryOp::GT);
+		b->set_allocated_left(e);
+		b->set_allocated_right(notExpr);
+		_expr->set_allocated_binop(b);
+		break;
+	}
+	// lt(not(0), x)
+	case 16:
+	{
+		auto zeroLit = new Expression();
+		zeroLit->set_allocated_cons(YPM::intLiteral(0));
+		auto notOp = new UnaryOp();
+		notOp->set_op(UnaryOp::NOT);
+		notOp->set_allocated_operand(zeroLit);
+		auto notExpr = new Expression();
+		notExpr->set_allocated_unop(notOp);
+		b->set_op(BinaryOp::LT);
+		b->set_allocated_left(notExpr);
+		b->set_allocated_right(e);
+		_expr->set_allocated_binop(b);
+		break;
+	}
+	// gt(0,x)
+	case 17:
+	{
+		b->set_op(BinaryOp::GT);
+		auto zeroLit = new Expression();
+		zeroLit->set_allocated_cons(YPM::intLiteral(0));
+		b->set_allocated_left(zeroLit);
+		b->set_allocated_right(e);
+		_expr->set_allocated_binop(b);
+		break;
+	}
+	// lt(x,0)
+	case 18:
+	{
+		b->set_op(BinaryOp::LT);
+		auto zeroLit = new Expression();
+		zeroLit->set_allocated_cons(YPM::intLiteral(0));
+		b->set_allocated_left(e);
+		b->set_allocated_right(zeroLit);
+		_expr->set_allocated_binop(b);
+		break;
+	}
+	// and(x,x)
+	case 19:
+	{
+		b->set_op(BinaryOp::AND);
+		b->set_allocated_left(e);
+		auto copyOfE = new Expression();
+		copyOfE->CopyFrom(*e);
+		b->set_allocated_right(copyOfE);
+		_expr->set_allocated_binop(b);
+		break;
+	}
+	// or(x,x)
+	case 20:
+	{
+		b->set_op(BinaryOp::OR);
+		b->set_allocated_left(e);
+		auto copyOfE = new Expression();
+		copyOfE->CopyFrom(*e);
+		b->set_allocated_right(copyOfE);
+		_expr->set_allocated_binop(b);
+		break;
+	}
+	// xor(x,x)
+	case 21:
+	{
+		b->set_op(BinaryOp::XOR);
+		b->set_allocated_left(e);
+		auto copyOfE = new Expression();
+		copyOfE->CopyFrom(*e);
+		b->set_allocated_right(copyOfE);
+		_expr->set_allocated_binop(b);
+		break;
+	}
+	// eq(x,x)
+	case 22:
+	{
+		b->set_op(BinaryOp::EQ);
+		b->set_allocated_left(e);
+		auto copyOfE = new Expression();
+		copyOfE->CopyFrom(*e);
+		b->set_allocated_right(copyOfE);
+		_expr->set_allocated_binop(b);
+		break;
+	}
+	// lt(x,x)
+	case 23:
+	{
+		b->set_op(BinaryOp::LT);
+		b->set_allocated_left(e);
+		auto copyOfE = new Expression();
+		copyOfE->CopyFrom(*e);
+		b->set_allocated_right(copyOfE);
+		_expr->set_allocated_binop(b);
+		break;
+	}
+	// gt(x,x)
+	case 24:
+	{
+		b->set_op(BinaryOp::GT);
+		b->set_allocated_left(e);
+		auto copyOfE = new Expression();
+		copyOfE->CopyFrom(*e);
+		b->set_allocated_right(copyOfE);
+		_expr->set_allocated_binop(b);
+		break;
+	}
+	// sgt(x,x)
+	case 25:
+	{
+		b->set_op(BinaryOp::SGT);
+		b->set_allocated_left(e);
+		auto copyOfE = new Expression();
+		copyOfE->CopyFrom(*e);
+		b->set_allocated_right(copyOfE);
+		_expr->set_allocated_binop(b);
+		break;
+	}
+	// mod(x,x)
+	case 26:
+	{
+		b->set_op(BinaryOp::MOD);
+		b->set_allocated_left(e);
+		auto copyOfE = new Expression();
+		copyOfE->CopyFrom(*e);
+		b->set_allocated_right(copyOfE);
+		_expr->set_allocated_binop(b);
+		break;
+	}
+	// xor(x,xor(x,y))
+//	case 27:
+//	{
+//
+//	}
+//	// xor(x,xor(y,x))
+//	case 28:
+//	{
+//
+//	}
+//	// xor(xor(x,y),x)
+//	case 29:
+//	{
+//
+//	}
+//	// xor(xor(y,x),x)
+//	case 30:
+//	{
+//
+//	}
+//	// or(x,and(x,y))
+//	case 31:
+//	{
+//
+//	}
+//	// or(x,and(y,x))
+//	case 32:
+//	{
+//
+//	}
+//	// or(and(x,y),x)
+//	case 33:
+//	{
+//
+//	}
+//	// or(and(y,x),x)
+//	case 34:
+//	{
+//
+//	}
+//	// and(x,or(x,y))
+//	case 35:
+//	{
+//
+//	}
+//	// and(x,or(y,x))
+//	case 36:
+//	{
+//
+//	}
+//	// and(or(x,y),x)
+//	case 37:
+//	{
+//
+//	}
+//	// and(or(y,x),x)
+//	case 38:
+//	{
+//
+//	}
+//	// and(x, not(x))
+//	case 39:
+//	{
+//
+//	}
+//	// and(not(x), x)
+//	case 40:
+//	{
+//
+//	}
+//	// or(x,not(x))
+//	case 41:
+//	{
+//
+//	}
+//	// or(not(x),x)
+//	case 42:
+//	{
+//
+//	}
 	}
 }
 
@@ -681,7 +903,7 @@ static YPR<Expression> movableExprMutation(
 			},
 			_message,
 			_seed,
-			13,
+			YPM::s_highIP,
 			"Mutate to movable expression"
 		);
 	}
