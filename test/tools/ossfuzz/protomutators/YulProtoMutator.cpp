@@ -914,29 +914,20 @@ static YPR<Block> nonmovableFunction(
 	[](Block* _message, unsigned _seed)
 	{
 		YPM::functionWrapper<Block>(
-			[](Block* _message, YulRandomNumGenerator&)
+			[](Block* _message, YulRandomNumGenerator& _rand)
 			{
 				auto f = new FunctionDef();
 				f->set_num_input_params(0);
 			    f->set_num_output_params(1);
 				f->mutable_block()->add_statements()->set_allocated_storage_func(new StoreFunc());
+				auto call = new FunctionExpr();
+				call->set_index(0);
+				auto callExpr = new Expression();
+				callExpr->set_allocated_funcexpr(call);
+				movableExpr(callExpr, _rand);
 				auto s = new StoreFunc();
 				s->set_st(StoreFunc::MSTORE);
-				auto call1 = new FunctionExpr();
-				call1->set_index(0);
-				auto call1expr = new Expression();
-				call1expr->set_allocated_funcexpr(call1);
-				auto call2 = new FunctionExpr();
-				call2->CopyFrom(*call1);
-				auto call2expr = new Expression();
-				call2expr->set_allocated_funcexpr(call2);
-				auto sub = new BinaryOp();
-				sub->set_op(BinaryOp::SUB);
-				sub->set_allocated_left(call1expr);
-				sub->set_allocated_right(call2expr);
-				auto subExpr = new Expression();
-				subExpr->set_allocated_binop(sub);
-				s->set_allocated_val(subExpr);
+				s->set_allocated_val(callExpr);
 				_message->add_statements()->set_allocated_funcdef(f);
 				_message->add_statements()->set_allocated_storage_func(s);
 			},
