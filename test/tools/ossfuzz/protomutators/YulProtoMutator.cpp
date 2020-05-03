@@ -1827,20 +1827,22 @@ static YPR<Block> removeRevert(
 );
 
 // Mutate nullary op
-static YPR<NullaryOp> mutateNullaryOp(
-	[](NullaryOp* _message, unsigned _seed)
+static YPR<Expression> mutateNullaryOp(
+	[](Expression* _message, unsigned _seed)
 	{
-		YPM::functionWrapper<NullaryOp>(
-			[](NullaryOp* _message, YulRandomNumGenerator& _rand)
+		YPM::functionWrapper<Expression>(
+			[](Expression* _message, YulRandomNumGenerator& _rand)
 			{
-				_message->clear_op();
-				_message->set_op(
+				YPM::clearExpr(_message);
+				auto op = new NullaryOp();
+				op->set_op(
 					YPM::EnumTypeConverter<NullaryOp_NOp>{}.enumFromSeed(_rand())
 				);
+				_message->set_allocated_nop(op);
 			},
 			_message,
 			_seed,
-			YPM::s_mediumIP,
+			13,
 			"Mutate nullary operation in expression"
 		);
 	}
