@@ -919,7 +919,10 @@ static YPR<Block> nonmovableFunction(
 				auto f = new FunctionDef();
 				f->set_num_input_params(0);
 			    f->set_num_output_params(1);
-				f->mutable_block()->add_statements()->set_allocated_storage_func(new StoreFunc());
+				if (_rand() % 2 == 0)
+					f->mutable_block()->add_statements()->set_allocated_storage_func(new StoreFunc());
+				else
+					f->mutable_block()->add_statements()->set_allocated_forstmt(new ForStmt());
 				auto call = new FunctionExpr();
 				call->set_index(0);
 				auto callExpr = new Expression();
