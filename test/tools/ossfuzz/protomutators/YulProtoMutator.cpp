@@ -54,6 +54,40 @@ void YulProtoMutator::functionWrapper(
 	}
 }
 
+// Add byte(a, shl(b, x)) | b = 256 - 8 * (a + 1);
+static YPR<Expression> byteShift(
+	[](Expression* _message, unsigned _seed)
+	{
+		YPM::functionWrapper<Expression>(
+			[](Expression* _message, YulRandomNumGenerator& _rand)
+			{
+				YPM::clearExpr(_message);
+				unsigned byteOffset = _rand() % 32;
+				unsigned numShiftBits = 256 - (8 * (byteOffset + 1));
+				auto a = new Expression();
+				a->set_allocated_cons(YPM::intLiteral(byteOffset));
+				auto shiftExpr = new Expression();
+				shiftExpr->set_allocated_cons(YPM::intLiteral(numShiftBits));
+				auto shiftOp = new BinaryOp();
+				shiftOp->set_op(BinaryOp::SHL);
+				shiftOp->set_allocated_left(shiftExpr);
+				shiftOp->set_allocated_right(new Expression());
+				auto shiftOpExpr = new Expression();
+				shiftOpExpr->set_allocated_binop(shiftOp);
+				auto byteExpr = new BinaryOp();
+				byteExpr->set_op(BinaryOp::BYTE);
+				byteExpr->set_allocated_left(a);
+				byteExpr->set_allocated_right(shiftOpExpr);
+				_message->set_allocated_binop(byteExpr);
+			},
+			_message,
+			_seed,
+			YPM::s_highIP,
+			"Add byte access op for left shifted expression"
+		);
+	}
+);
+
 // Add idempotent OR
 static YPR<Expression> idempotentOr(
 	[](Expression* _message, unsigned _seed)
