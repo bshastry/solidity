@@ -109,12 +109,9 @@ struct YulProtoMutator
 	static void configureCall(FunctionCall *_call, YulRandomNumGenerator& _rand);
 
 	/// Configure function call arguments.
-	/// @param _callType: Enum stating type of function call
-	/// i.e., no-return, single-return, multi-decl, or multi-assign.
 	/// @param _call: Pre-allocated protobuf message of FunctionCall type
 	/// @param _rand: Pseudo-random number generator
 	static void configureCallArgs(
-		FunctionCall_Returns _callType,
 		FunctionCall *_call,
 		YulRandomNumGenerator& _rand
 	);

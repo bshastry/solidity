@@ -486,11 +486,10 @@ static YPR<ForStmt> funcCallForCondition(
 				if (_message->has_for_cond())
 				{
 					_message->clear_for_cond();
-					auto functionCall = new FunctionCall();
-					functionCall->set_ret(FunctionCall::SINGLE);
-					functionCall->set_func_index(_rand());
+					auto functionCall = new FunctionExpr();
+					functionCall->set_index(_rand());
 					auto forCondExpr = new Expression();
-					forCondExpr->set_allocated_func_expr(functionCall);
+					forCondExpr->set_allocated_funcexpr(functionCall);
 					_message->set_allocated_for_cond(forCondExpr);
 				}
 			},
@@ -1353,11 +1352,10 @@ static YPR<Block> addPopUserFunc(
 		YPM::functionWrapper<Block>(
 			[](Block* _message, YulRandomNumGenerator& _rand)
 			{
-				auto functioncall = new FunctionCall();
-				functioncall->set_ret(FunctionCall::SINGLE);
-				YPM::configureCallArgs(FunctionCall::SINGLE, functioncall, _rand);
 				auto funcExpr = new Expression();
-				funcExpr->set_allocated_func_expr(functioncall);
+				auto funcCall = new FunctionExpr();
+				funcCall->set_index(_rand());
+				funcExpr->set_allocated_funcexpr(funcCall);
 				auto popStmt = new PopStmt();
 				popStmt->set_allocated_expr(funcExpr);
 				_message->add_statements()->set_allocated_pop(popStmt);
@@ -1462,10 +1460,9 @@ static YPR<Expression> mutateExprToFuncCall(
 			[](Expression* _message, YulRandomNumGenerator& _rand)
 			{
 				YPM::clearExpr(_message);
-				auto functionCall = new FunctionCall();
-				functionCall->set_ret(FunctionCall::SINGLE);
-				functionCall->set_func_index(_rand());
-				_message->set_allocated_func_expr(functionCall);
+				auto functionCall = new FunctionExpr();
+				functionCall->set_index(_rand());
+				_message->set_allocated_funcexpr(functionCall);
 			},
 			_message,
 			_seed,
@@ -1860,13 +1857,10 @@ void YPM::addArgsRec(
 		_mutator(_stmt->mutable_functioncall()->mutable_in_param2(), _rand);
 		_mutator(_stmt->mutable_functioncall()->mutable_in_param3(), _rand);
 		_mutator(_stmt->mutable_functioncall()->mutable_in_param4(), _rand);
-		if (_stmt->functioncall().ret() == FunctionCall_Returns::FunctionCall_Returns_MULTIASSIGN)
-		{
-			_stmt->mutable_functioncall()->set_allocated_out_param1(varRef(_rand()));
-			_stmt->mutable_functioncall()->set_allocated_out_param2(varRef(_rand()));
-			_stmt->mutable_functioncall()->set_allocated_out_param3(varRef(_rand()));
-			_stmt->mutable_functioncall()->set_allocated_out_param4(varRef(_rand()));
-		}
+		_stmt->mutable_functioncall()->set_allocated_out_param1(varRef(_rand()));
+		_stmt->mutable_functioncall()->set_allocated_out_param2(varRef(_rand()));
+		_stmt->mutable_functioncall()->set_allocated_out_param3(varRef(_rand()));
+		_stmt->mutable_functioncall()->set_allocated_out_param4(varRef(_rand()));
 		break;
 	case Statement::kFuncdef:
 		break;
@@ -1978,65 +1972,42 @@ Expression* YPM::refExpression(YulRandomNumGenerator& _rand)
 
 void YPM::configureCall(FunctionCall *_call, YulRandomNumGenerator& _rand)
 {
-	auto type = EnumTypeConverter<FunctionCall_Returns>{}.enumFromSeed(_rand());
-	_call->set_ret(type);
 	_call->set_func_index(_rand());
-	configureCallArgs(type, _call, _rand);
+	configureCallArgs(_call, _rand);
 }
 
 void YPM::configureCallArgs(
-	FunctionCall_Returns _callType,
 	FunctionCall *_call,
 	YulRandomNumGenerator& _rand
 )
 {
-	// Configuration rules:
-	// All function calls must configure four input arguments, because
-	// a function of any type may have at most four input arguments.
-	// Out arguments need to be configured only for multi-assign
-	switch (_callType)
-	{
-	case FunctionCall_Returns_MULTIASSIGN:
-	{
-		_call->set_allocated_out_param4(YPM::varRef(_rand()));
-		_call->set_allocated_out_param3(YPM::varRef(_rand()));
-		_call->set_allocated_out_param2(YPM::varRef(_rand()));
-		_call->set_allocated_out_param1(YPM::varRef(_rand()));
-	}
-	[[fallthrough]];
-	case FunctionCall_Returns_MULTIDECL:
-	[[fallthrough]];
-	case FunctionCall_Returns_SINGLE:
-	[[fallthrough]];
-	case FunctionCall_Returns_ZERO:
-	{
-		auto inArg4 = new Expression();
-		inArg4->set_allocated_varref(YPM::varRef(_rand()));
-		_call->set_allocated_in_param4(inArg4);
+	_call->set_allocated_out_param4(YPM::varRef(_rand()));
+	_call->set_allocated_out_param3(YPM::varRef(_rand()));
+	_call->set_allocated_out_param2(YPM::varRef(_rand()));
+	_call->set_allocated_out_param1(YPM::varRef(_rand()));
 
-		auto inArg3 = new Expression();
-		inArg3->set_allocated_varref(YPM::varRef(_rand()));
-		_call->set_allocated_in_param3(inArg3);
+	auto inArg4 = new Expression();
+	inArg4->set_allocated_varref(YPM::varRef(_rand()));
+	_call->set_allocated_in_param4(inArg4);
 
-		auto inArg2 = new Expression();
-		inArg2->set_allocated_varref(YPM::varRef(_rand()));
-		_call->set_allocated_in_param2(inArg2);
+	auto inArg3 = new Expression();
+	inArg3->set_allocated_varref(YPM::varRef(_rand()));
+	_call->set_allocated_in_param3(inArg3);
 
-		auto inArg1 = new Expression();
-		inArg1->set_allocated_varref(YPM::varRef(_rand()));
-		_call->set_allocated_in_param1(inArg1);
-		break;
-	}
-	}
+	auto inArg2 = new Expression();
+	inArg2->set_allocated_varref(YPM::varRef(_rand()));
+	_call->set_allocated_in_param2(inArg2);
+
+	auto inArg1 = new Expression();
+	inArg1->set_allocated_varref(YPM::varRef(_rand()));
+	_call->set_allocated_in_param1(inArg1);
 }
 
 template <typename T>
 T YPM::EnumTypeConverter<T>::validEnum(unsigned _seed)
 {
 	auto ret = static_cast<T>(_seed % (enumMax() - enumMin() + 1) + enumMin());
-	if constexpr (std::is_same_v<std::decay_t<T>, FunctionCall_Returns>)
-		yulAssert(FunctionCall_Returns_IsValid(ret), "Yul proto mutator: Invalid enum");
-	else if constexpr (std::is_same_v<std::decay_t<T>, StoreFunc_Storage>)
+	if constexpr (std::is_same_v<std::decay_t<T>, StoreFunc_Storage>)
 		yulAssert(StoreFunc_Storage_IsValid(ret), "Yul proto mutator: Invalid enum");
 	else if constexpr (std::is_same_v<std::decay_t<T>, NullaryOp_NOp>)
 		yulAssert(NullaryOp_NOp_IsValid(ret), "Yul proto mutator: Invalid enum");
@@ -2058,9 +2029,7 @@ T YPM::EnumTypeConverter<T>::validEnum(unsigned _seed)
 template <typename T>
 int YPM::EnumTypeConverter<T>::enumMax()
 {
-	if constexpr (std::is_same_v<std::decay_t<T>, FunctionCall_Returns>)
-		return FunctionCall_Returns_Returns_MAX;
-	else if constexpr (std::is_same_v<std::decay_t<T>, StoreFunc_Storage>)
+	if constexpr (std::is_same_v<std::decay_t<T>, StoreFunc_Storage>)
 		return StoreFunc_Storage_Storage_MAX;
 	else if constexpr (std::is_same_v<std::decay_t<T>, NullaryOp_NOp>)
 		return NullaryOp_NOp_NOp_MAX;
@@ -2081,9 +2050,7 @@ int YPM::EnumTypeConverter<T>::enumMax()
 template <typename T>
 int YPM::EnumTypeConverter<T>::enumMin()
 {
-	if constexpr (std::is_same_v<std::decay_t<T>, FunctionCall_Returns>)
-		return FunctionCall_Returns_Returns_MIN;
-	else if constexpr (std::is_same_v<std::decay_t<T>, StoreFunc_Storage>)
+	if constexpr (std::is_same_v<std::decay_t<T>, StoreFunc_Storage>)
 		return StoreFunc_Storage_Storage_MIN;
 	else if constexpr (std::is_same_v<std::decay_t<T>, NullaryOp_NOp>)
 		return NullaryOp_NOp_NOp_MIN;
@@ -2171,9 +2138,9 @@ void YPM::clearExpr(Expression* _expr)
 		delete _expr->release_nop();
 		_expr->clear_nop();
 		break;
-	case Expression::kFuncExpr:
-		delete _expr->release_func_expr();
-		_expr->clear_func_expr();
+	case Expression::kFuncexpr:
+		delete _expr->release_funcexpr();
+		_expr->clear_funcexpr();
 		break;
 	case Expression::kLowcall:
 		delete _expr->release_lowcall();
@@ -2256,31 +2223,31 @@ void YPM::unsetExprMutator(
 		break;
 	case Expression::kNop:
 		break;
-	case Expression::kFuncExpr:
-		_expr->mutable_func_expr()->set_ret(FunctionCall_Returns::FunctionCall_Returns_SINGLE);
+	case Expression::kFuncexpr:
+		_expr->mutable_funcexpr()->set_index(_rand());
 
-		if (!isSet(_expr->func_expr().in_param1()))
-			_mutateExprFunc(_expr->mutable_func_expr()->mutable_in_param1(), _rand());
+		if (!isSet(_expr->funcexpr().in_param1()))
+			_mutateExprFunc(_expr->mutable_funcexpr()->mutable_in_param1(), _rand());
 		else
-			unsetExprMutator(_expr->mutable_func_expr()->mutable_in_param1(), _rand,
+			unsetExprMutator(_expr->mutable_funcexpr()->mutable_in_param1(), _rand,
 			                 _mutateExprFunc);
 
-		if (!isSet(_expr->func_expr().in_param2()))
-			_mutateExprFunc(_expr->mutable_func_expr()->mutable_in_param2(), _rand());
+		if (!isSet(_expr->funcexpr().in_param2()))
+			_mutateExprFunc(_expr->mutable_funcexpr()->mutable_in_param2(), _rand());
 		else
-			unsetExprMutator(_expr->mutable_func_expr()->mutable_in_param2(), _rand,
+			unsetExprMutator(_expr->mutable_funcexpr()->mutable_in_param2(), _rand,
 			                 _mutateExprFunc);
 
-		if (!isSet(_expr->func_expr().in_param3()))
-			_mutateExprFunc(_expr->mutable_func_expr()->mutable_in_param3(), _rand());
+		if (!isSet(_expr->funcexpr().in_param3()))
+			_mutateExprFunc(_expr->mutable_funcexpr()->mutable_in_param3(), _rand());
 		else
-			unsetExprMutator(_expr->mutable_func_expr()->mutable_in_param3(), _rand,
+			unsetExprMutator(_expr->mutable_funcexpr()->mutable_in_param3(), _rand,
 			                 _mutateExprFunc);
 
-		if (!isSet(_expr->func_expr().in_param4()))
-			_mutateExprFunc(_expr->mutable_func_expr()->mutable_in_param4(), _rand());
+		if (!isSet(_expr->funcexpr().in_param4()))
+			_mutateExprFunc(_expr->mutable_funcexpr()->mutable_in_param4(), _rand());
 		else
-			unsetExprMutator(_expr->mutable_func_expr()->mutable_in_param4(), _rand,
+			unsetExprMutator(_expr->mutable_funcexpr()->mutable_in_param4(), _rand,
 			                 _mutateExprFunc);
 
 		break;

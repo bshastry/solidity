@@ -99,6 +99,7 @@ private:
 	void visit(TerminatingStmt const&);
 	void visit(FunctionCall const&);
 	void visit(FunctionDef const&);
+	void visit(FunctionExpr const&);
 	void visit(PopStmt const&);
 	void visit(LeaveStmt const&);
 	void visit(LowLevelCall const&);
@@ -140,7 +141,8 @@ private:
 		Multiple
 	};
 
-	void visitFunctionInputParams(FunctionCall const&, unsigned);
+	template <typename T>
+	void visitFunctionInputParams(T const&, unsigned);
 	void createFunctionDefAndCall(FunctionDef const&, unsigned, unsigned);
 
 	/// Convert function type to a string to be used while naming a
@@ -169,34 +171,6 @@ private:
 	/// in scope
 	bool varDeclAvailable();
 
-	/// Return true if a function call cannot be made, false otherwise.
-	/// @param _type is an enum denoting the type of function call. It
-	/// can be one of NONE, SINGLE, MULTIDECL, MULTIASSIGN.
-	///		NONE -> Function call does not return a value
-	///		SINGLE -> Function call returns a single value
-	///		MULTIDECL -> Function call returns more than one value
-	///		and it is used to create a multi declaration
-	///		statement
-	///		MULTIASSIGN -> Function call returns more than one value
-	///		and it is used to create a multi assignment
-	///		statement
-	/// @return True if the function call cannot be created for one of the
-	/// following reasons
-	//   - It is a SINGLE function call (we reserve SINGLE functions for
-	//   expressions)
-	//   - It is a MULTIASSIGN function call and we do not have any
-	//   variables available for assignment.
-	bool functionCallNotPossible(FunctionCall_Returns _type);
-
-	/// Checks if function call of type @a _type returns the correct number
-	/// of values.
-	/// @param _type Function call type of the function being checked
-	/// @param _numOutParams Number of values returned by the function
-	/// being checked
-	/// @return true if the function returns the correct number of values,
-	/// false otherwise
-	bool functionValid(FunctionCall_Returns _type, unsigned _numOutParams);
-
 	/// Converts protobuf function call to a Yul function call and appends
 	/// it to output stream.
 	/// @param _x Protobuf function call
@@ -204,8 +178,9 @@ private:
 	/// @param _numInParams Number of input arguments accepted by function
 	/// @param _newLine Flag that prints a new line to the output stream if
 	/// true. Default value for the flag is true.
+	template <typename T>
 	void convertFunctionCall(
-		FunctionCall const& _x,
+		T const& _x,
 		std::string _name,
 		unsigned _numInParams,
 		bool _newLine = true

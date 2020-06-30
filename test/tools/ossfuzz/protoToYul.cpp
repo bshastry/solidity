@@ -207,12 +207,6 @@ bool ProtoConverter::varDeclAvailable()
 	}
 }
 
-bool ProtoConverter::functionCallNotPossible(FunctionCall_Returns _type)
-{
-	return _type == FunctionCall::SINGLE ||
-		(_type == FunctionCall::MULTIASSIGN && !varDeclAvailable());
-}
-
 string ProtoConverter::varRef(unsigned _index)
 {
 	if (m_inFunctionDef)
@@ -232,6 +226,33 @@ string ProtoConverter::varRef(unsigned _index)
 void ProtoConverter::visit(VarRef const& _x)
 {
 	m_output << varRef(_x.varnum());
+}
+
+void ProtoConverter::visit(FunctionExpr const& _x)
+{
+	bool functionAvailable = m_functionSigMap.size() > 0;
+	unsigned numInParams, numOutParams;
+	string funcName;
+	if (functionAvailable)
+	{
+		yulAssert(m_functions.size() > 0, "Proto fuzzer: No function in scope");
+		funcName = m_functions[_x.index() % m_functions.size()];
+		auto ret = m_functionSigMap.at(funcName);
+		numInParams = ret.first;
+		numOutParams = ret.second;
+		if (numOutParams != 1)
+		{
+			m_output << dummyExpression();
+			return;
+		}
+	}
+	else
+	{
+		m_output << dummyExpression();
+		return;
+	}
+
+	convertFunctionCall(_x, funcName, numInParams, /*newline=*/true);
 }
 
 void ProtoConverter::visit(Expression const& _x)
@@ -268,13 +289,8 @@ void ProtoConverter::visit(Expression const& _x)
 	case Expression::kNop:
 		visit(_x.nop());
 		break;
-	case Expression::kFuncExpr:
-		// FunctionCall must return a single value, otherwise
-		// we output a trivial expression "1".
-		if (_x.func_expr().ret() == FunctionCall::SINGLE)
-			visit(_x.func_expr());
-		else
-			m_output << dummyExpression();
+	case Expression::kFuncexpr:
+		visit(_x.funcexpr());
 		break;
 	case Expression::kLowcall:
 		visit(_x.lowcall());
@@ -862,7 +878,8 @@ void ProtoConverter::visit(AssignmentStatement const& _x)
 	m_output << "\n";
 }
 
-void ProtoConverter::visitFunctionInputParams(FunctionCall const& _x, unsigned _numInputParams)
+template <typename T>
+void ProtoConverter::visitFunctionInputParams(T const& _x, unsigned _numInputParams)
 {
 	// We reverse the order of function input visits since it helps keep this switch case concise.
 	switch (_numInputParams)
@@ -890,22 +907,9 @@ void ProtoConverter::visitFunctionInputParams(FunctionCall const& _x, unsigned _
 	}
 }
 
-bool ProtoConverter::functionValid(FunctionCall_Returns _type, unsigned _numOutParams)
-{
-	switch (_type)
-	{
-	case FunctionCall::ZERO:
-		return _numOutParams == 0;
-	case FunctionCall::SINGLE:
-		return _numOutParams == 1;
-	case FunctionCall::MULTIDECL:
-	case FunctionCall::MULTIASSIGN:
-		return _numOutParams > 1;
-	}
-}
-
+template <typename T>
 void ProtoConverter::convertFunctionCall(
-	FunctionCall const& _x,
+	T const& _x,
 	std::string _name,
 	unsigned _numInParams,
 	bool _newLine
