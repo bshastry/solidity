@@ -84,12 +84,12 @@ struct YulProtoMutator
 	/// @param _seed: Pseudo-random unsigned integer used as index
 	/// of variable to be referenced
 	/// @returns a variable reference protobuf message.
-	static VarRef* varRef(YulRandomNumGenerator& _rand);
+	static VarRef* varRef(unsigned _seed);
 
 	/// Return a literal expression
 	/// @param _value: value of literal expression
 	/// @returns an expression protobuf message
-	static Expression* litExpression(YulRandomNumGenerator& _rand);
+	static Expression* litExpression(unsigned _value);
 
 	/// Return a reference expression
 	/// @param _rand: Pseudo-random number generator
@@ -114,6 +114,7 @@ struct YulProtoMutator
 	/// @param _call: Pre-allocated protobuf message of FunctionCall type
 	/// @param _rand: Pseudo-random number generator
 	static void configureCallArgs(
+		FunctionCall_Returns _callType,
 		FunctionCall *_call,
 		YulRandomNumGenerator& _rand
 	);
@@ -152,7 +153,7 @@ struct YulProtoMutator
 	static void unsetExprMutator(
 		Expression* _expr,
 		YulRandomNumGenerator& _rand,
-		std::function<void(Expression*, YulRandomNumGenerator&)> _mutateExprFunc
+		std::function<void(Expression*, unsigned)> _mutateExprFunc
 	);
 
 	/// Check if expression is set.

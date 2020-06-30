@@ -54,40 +54,6 @@ void YulProtoMutator::functionWrapper(
 	}
 }
 
-// Add byte(a, shl(b, x)) | b = 256 - 8 * (a + 1);
-static YPR<Expression> byteShift(
-	[](Expression* _message, unsigned _seed)
-	{
-		YPM::functionWrapper<Expression>(
-			[](Expression* _message, YulRandomNumGenerator& _rand)
-			{
-				YPM::clearExpr(_message);
-				unsigned byteOffset = _rand() % 32;
-				unsigned numShiftBits = 256 - (8 * (byteOffset + 1));
-				auto a = new Expression();
-				a->set_allocated_cons(YPM::intLiteral(byteOffset));
-				auto shiftExpr = new Expression();
-				shiftExpr->set_allocated_cons(YPM::intLiteral(numShiftBits));
-				auto shiftOp = new BinaryOp();
-				shiftOp->set_op(BinaryOp::SHL);
-				shiftOp->set_allocated_left(shiftExpr);
-				shiftOp->set_allocated_right(new Expression());
-				auto shiftOpExpr = new Expression();
-				shiftOpExpr->set_allocated_binop(shiftOp);
-				auto byteExpr = new BinaryOp();
-				byteExpr->set_op(BinaryOp::BYTE);
-				byteExpr->set_allocated_left(a);
-				byteExpr->set_allocated_right(shiftOpExpr);
-				_message->set_allocated_binop(byteExpr);
-			},
-			_message,
-			_seed,
-			YPM::s_highIP,
-			"Add byte access op for left shifted expression"
-		);
-	}
-);
-
 // Add idempotent OR
 static YPR<Expression> idempotentOr(
 	[](Expression* _message, unsigned _seed)
@@ -234,60 +200,6 @@ static YPR<AssignmentStatement> assignLoadZero(
 			_seed,
 			YPM::s_highIP,
 			"Assign load from zero"
-		);
-	}
-);
-
-static YPR<Expression> mutateExpr(
-	[](Expression* _message, unsigned _seed)
-	{
-		YPM::functionWrapper<Expression>(
-			[](Expression* _message, YulRandomNumGenerator& _rand)
-			{
-				YPM::clearExpr(_message);
-				switch (_rand() % 5)
-				{
-				case 0:
-				{
-					auto tmp = YPM::binopExpression(_rand);
-					_message->CopyFrom(*tmp);
-					delete tmp;
-					break;
-				}
-				case 1:
-				{
-					auto tmp = YPM::refExpression(_rand);
-					_message->CopyFrom(*tmp);
-					delete tmp;
-					break;
-				}
-				case 2:
-				{
-					auto tmp = YPM::litExpression(_rand);
-					_message->CopyFrom(*tmp);
-					delete tmp;
-					break;
-				}
-				case 3:
-				{
-					auto tmp = YPM::loadExpression(_rand);
-					_message->CopyFrom(*tmp);
-					delete tmp;
-					break;
-				}
-				case 4:
-				{
-					auto tmp = YPM::loadFromZero(_rand);
-					_message->CopyFrom(*tmp);
-					delete tmp;
-					break;
-				}
-				}
-			},
-			_message,
-			_seed,
-			YPM::s_highIP,
-			"Mutate expression"
 		);
 	}
 );
@@ -469,513 +381,6 @@ static YPR<UnaryOp> removeLoad(
 	}
 );
 
-static YPR<Block> storeToLoadFrom(
-	[](Block* _message, unsigned _seed)
-	{
-		YPM::functionWrapper<Block>(
-			[](Block* _message, YulRandomNumGenerator& _rand)
-			{
-				Expression* e;
-				switch (_rand() % 5)
-				{
-				case 0:
-					e = YPM::binopExpression(_rand);
-					break;
-				case 1:
-					e = YPM::loadExpression(_rand);
-					break;
-				case 2:
-					e = YPM::loadFromZero(_rand);
-					break;
-				case 3:
-					e = YPM::litExpression(_rand);
-					break;
-				case 4:
-					e = YPM::refExpression(_rand);
-					break;
-				}
-				auto store = new StoreFunc();
-				store->set_allocated_loc(e);
-				store->set_allocated_val(new Expression());
-				bool coinFlip = _rand() % 2 == 0;
-				store->set_st(coinFlip ? StoreFunc::MSTORE : StoreFunc::SSTORE);
-				auto assign = new AssignmentStatement();
-				auto copyOfE = new Expression();
-				copyOfE->CopyFrom(*e);
-				auto loadOp = new UnaryOp();
-				loadOp->set_op(coinFlip ? UnaryOp::MLOAD : UnaryOp::SLOAD);
-				loadOp->set_allocated_operand(copyOfE);
-				auto loadExpr = new Expression();
-				loadExpr->set_allocated_unop(loadOp);
-				assign->set_allocated_expr(loadExpr);
-				assign->set_allocated_ref_id(YPM::varRef(_rand));
-				_message->add_statements()->set_allocated_storage_func(store);
-				_message->add_statements()->set_allocated_assignment(assign);
-			},
-			_message,
-			_seed,
-			YPM::s_highIP,
-			"Store to and load from same location"
-		);
-	}
-);
-
-void movableExpr(Expression* _expr, YulRandomNumGenerator& _rand)
-{
-	auto e = new Expression();
-	e->CopyFrom(*_expr);
-	YPM::clearExpr(_expr);
-	auto b = new BinaryOp();
-	switch (_rand() % 27)
-	{
-	// sub(x,x)
-	case 0:
-	{
-		b->set_op(BinaryOp::SUB);
-		b->set_allocated_left(e);
-		auto copyOfE = new Expression();
-		copyOfE->CopyFrom(*e);
-		b->set_allocated_right(copyOfE);
-		_expr->set_allocated_binop(b);
-		break;
-	}
-	// div (x,0)
-	case 1:
-	{
-		b->set_op(BinaryOp::DIV);
-		b->set_allocated_left(e);
-		auto zeroLit = new Expression();
-		zeroLit->set_allocated_cons(YPM::intLiteral(0));
-		b->set_allocated_right(zeroLit);
-		_expr->set_allocated_binop(b);
-		break;
-	}
-	// div(0,x)
-	case 2:
-	{
-		b->set_op(BinaryOp::DIV);
-		auto zeroLit = new Expression();
-		zeroLit->set_allocated_cons(YPM::intLiteral(0));
-		b->set_allocated_left(zeroLit);
-		b->set_allocated_right(e);
-		_expr->set_allocated_binop(b);
-		break;
-	}
-	// mul(x,0)
-	case 3:
-	{
-		b->set_op(BinaryOp::MUL);
-		auto zeroLit = new Expression();
-		zeroLit->set_allocated_cons(YPM::intLiteral(0));
-		b->set_allocated_left(e);
-		b->set_allocated_right(zeroLit);
-		_expr->set_allocated_binop(b);
-		break;
-	}
-	// mul(0,x)
-	case 4:
-	{
-		b->set_op(BinaryOp::MUL);
-		auto zeroLit = new Expression();
-		zeroLit->set_allocated_cons(YPM::intLiteral(0));
-		b->set_allocated_left(zeroLit);
-		b->set_allocated_right(e);
-		_expr->set_allocated_binop(b);
-		break;
-	}
-	// sdiv(x,0)
-	case 5:
-	{
-		b->set_op(BinaryOp::SDIV);
-		auto zeroLit = new Expression();
-		zeroLit->set_allocated_cons(YPM::intLiteral(0));
-		b->set_allocated_left(e);
-		b->set_allocated_right(zeroLit);
-		_expr->set_allocated_binop(b);
-		break;
-	}
-	// sdiv(0,x)
-	case 6:
-	{
-		b->set_op(BinaryOp::SDIV);
-		auto zeroLit = new Expression();
-		zeroLit->set_allocated_cons(YPM::intLiteral(0));
-		b->set_allocated_left(zeroLit);
-		b->set_allocated_right(e);
-		_expr->set_allocated_binop(b);
-		break;
-	}
-	// and(x,0)
-	case 7:
-	{
-		b->set_op(BinaryOp::AND);
-		auto zeroLit = new Expression();
-		zeroLit->set_allocated_cons(YPM::intLiteral(0));
-		b->set_allocated_left(e);
-		b->set_allocated_right(zeroLit);
-		_expr->set_allocated_binop(b);
-		break;
-	}
-	// and(0,x)
-	case 8:
-	{
-		b->set_op(BinaryOp::AND);
-		auto zeroLit = new Expression();
-		zeroLit->set_allocated_cons(YPM::intLiteral(0));
-		b->set_allocated_left(zeroLit);
-		b->set_allocated_right(e);
-		_expr->set_allocated_binop(b);
-		break;
-	}
-	// or(x, not(0))
-	case 9:
-	{
-		b->set_op(BinaryOp::XOR);
-		auto zeroLit = new Expression();
-		zeroLit->set_allocated_cons(YPM::intLiteral(0));
-		b->set_allocated_left(e);
-		auto notOp = new UnaryOp();
-		notOp->set_op(UnaryOp::NOT);
-		notOp->set_allocated_operand(zeroLit);
-		auto notExpr = new Expression();
-		notExpr->set_allocated_unop(notOp);
-		b->set_allocated_right(notExpr);
-		_expr->set_allocated_binop(b);
-		break;
-	}
-	// or(not(0), x)
-	case 10:
-	{
-		b->set_op(BinaryOp::XOR);
-		auto zeroLit = new Expression();
-		zeroLit->set_allocated_cons(YPM::intLiteral(0));
-		b->set_allocated_right(e);
-		auto notOp = new UnaryOp();
-		notOp->set_op(UnaryOp::NOT);
-		notOp->set_allocated_operand(zeroLit);
-		auto notExpr = new Expression();
-		notExpr->set_allocated_unop(notOp);
-		b->set_allocated_left(notExpr);
-		_expr->set_allocated_binop(b);
-		break;
-	}
-	// mod(x,0)
-	case 11:
-	{
-		b->set_op(BinaryOp::MOD);
-		auto zeroLit = new Expression();
-		zeroLit->set_allocated_cons(YPM::intLiteral(0));
-		b->set_allocated_left(e);
-		b->set_allocated_right(zeroLit);
-		_expr->set_allocated_binop(b);
-		break;
-	}
-	// mod(0,x)
-	case 12:
-	{
-		b->set_op(BinaryOp::MOD);
-		auto zeroLit = new Expression();
-		zeroLit->set_allocated_cons(YPM::intLiteral(0));
-		b->set_allocated_left(zeroLit);
-		b->set_allocated_right(e);
-		_expr->set_allocated_binop(b);
-		break;
-	}
-	// shl(x,0)
-	case 13:
-	{
-		b->set_op(BinaryOp::SHL);
-		auto zeroLit = new Expression();
-		zeroLit->set_allocated_cons(YPM::intLiteral(0));
-		b->set_allocated_left(e);
-		b->set_allocated_right(zeroLit);
-		_expr->set_allocated_binop(b);
-		break;
-	}
-	// shr(x,0)
-	case 14:
-	{
-		b->set_op(BinaryOp::SHR);
-		auto zeroLit = new Expression();
-		zeroLit->set_allocated_cons(YPM::intLiteral(0));
-		b->set_allocated_left(e);
-		b->set_allocated_right(zeroLit);
-		_expr->set_allocated_binop(b);
-		break;
-	}
-	// gt(x,not(0))
-	case 15:
-	{
-		auto zeroLit = new Expression();
-		zeroLit->set_allocated_cons(YPM::intLiteral(0));
-		auto notOp = new UnaryOp();
-		notOp->set_op(UnaryOp::NOT);
-		notOp->set_allocated_operand(zeroLit);
-		auto notExpr = new Expression();
-		notExpr->set_allocated_unop(notOp);
-		b->set_op(BinaryOp::GT);
-		b->set_allocated_left(e);
-		b->set_allocated_right(notExpr);
-		_expr->set_allocated_binop(b);
-		break;
-	}
-	// lt(not(0), x)
-	case 16:
-	{
-		auto zeroLit = new Expression();
-		zeroLit->set_allocated_cons(YPM::intLiteral(0));
-		auto notOp = new UnaryOp();
-		notOp->set_op(UnaryOp::NOT);
-		notOp->set_allocated_operand(zeroLit);
-		auto notExpr = new Expression();
-		notExpr->set_allocated_unop(notOp);
-		b->set_op(BinaryOp::LT);
-		b->set_allocated_left(notExpr);
-		b->set_allocated_right(e);
-		_expr->set_allocated_binop(b);
-		break;
-	}
-	// gt(0,x)
-	case 17:
-	{
-		b->set_op(BinaryOp::GT);
-		auto zeroLit = new Expression();
-		zeroLit->set_allocated_cons(YPM::intLiteral(0));
-		b->set_allocated_left(zeroLit);
-		b->set_allocated_right(e);
-		_expr->set_allocated_binop(b);
-		break;
-	}
-	// lt(x,0)
-	case 18:
-	{
-		b->set_op(BinaryOp::LT);
-		auto zeroLit = new Expression();
-		zeroLit->set_allocated_cons(YPM::intLiteral(0));
-		b->set_allocated_left(e);
-		b->set_allocated_right(zeroLit);
-		_expr->set_allocated_binop(b);
-		break;
-	}
-	// and(x,x)
-	case 19:
-	{
-		b->set_op(BinaryOp::AND);
-		b->set_allocated_left(e);
-		auto copyOfE = new Expression();
-		copyOfE->CopyFrom(*e);
-		b->set_allocated_right(copyOfE);
-		_expr->set_allocated_binop(b);
-		break;
-	}
-	// or(x,x)
-	case 20:
-	{
-		b->set_op(BinaryOp::OR);
-		b->set_allocated_left(e);
-		auto copyOfE = new Expression();
-		copyOfE->CopyFrom(*e);
-		b->set_allocated_right(copyOfE);
-		_expr->set_allocated_binop(b);
-		break;
-	}
-	// xor(x,x)
-	case 21:
-	{
-		b->set_op(BinaryOp::XOR);
-		b->set_allocated_left(e);
-		auto copyOfE = new Expression();
-		copyOfE->CopyFrom(*e);
-		b->set_allocated_right(copyOfE);
-		_expr->set_allocated_binop(b);
-		break;
-	}
-	// eq(x,x)
-	case 22:
-	{
-		b->set_op(BinaryOp::EQ);
-		b->set_allocated_left(e);
-		auto copyOfE = new Expression();
-		copyOfE->CopyFrom(*e);
-		b->set_allocated_right(copyOfE);
-		_expr->set_allocated_binop(b);
-		break;
-	}
-	// lt(x,x)
-	case 23:
-	{
-		b->set_op(BinaryOp::LT);
-		b->set_allocated_left(e);
-		auto copyOfE = new Expression();
-		copyOfE->CopyFrom(*e);
-		b->set_allocated_right(copyOfE);
-		_expr->set_allocated_binop(b);
-		break;
-	}
-	// gt(x,x)
-	case 24:
-	{
-		b->set_op(BinaryOp::GT);
-		b->set_allocated_left(e);
-		auto copyOfE = new Expression();
-		copyOfE->CopyFrom(*e);
-		b->set_allocated_right(copyOfE);
-		_expr->set_allocated_binop(b);
-		break;
-	}
-	// sgt(x,x)
-	case 25:
-	{
-		b->set_op(BinaryOp::SGT);
-		b->set_allocated_left(e);
-		auto copyOfE = new Expression();
-		copyOfE->CopyFrom(*e);
-		b->set_allocated_right(copyOfE);
-		_expr->set_allocated_binop(b);
-		break;
-	}
-	// mod(x,x)
-	case 26:
-	{
-		b->set_op(BinaryOp::MOD);
-		b->set_allocated_left(e);
-		auto copyOfE = new Expression();
-		copyOfE->CopyFrom(*e);
-		b->set_allocated_right(copyOfE);
-		_expr->set_allocated_binop(b);
-		break;
-	}
-	// xor(x,xor(x,y))
-//	case 27:
-//	{
-//
-//	}
-//	// xor(x,xor(y,x))
-//	case 28:
-//	{
-//
-//	}
-//	// xor(xor(x,y),x)
-//	case 29:
-//	{
-//
-//	}
-//	// xor(xor(y,x),x)
-//	case 30:
-//	{
-//
-//	}
-//	// or(x,and(x,y))
-//	case 31:
-//	{
-//
-//	}
-//	// or(x,and(y,x))
-//	case 32:
-//	{
-//
-//	}
-//	// or(and(x,y),x)
-//	case 33:
-//	{
-//
-//	}
-//	// or(and(y,x),x)
-//	case 34:
-//	{
-//
-//	}
-//	// and(x,or(x,y))
-//	case 35:
-//	{
-//
-//	}
-//	// and(x,or(y,x))
-//	case 36:
-//	{
-//
-//	}
-//	// and(or(x,y),x)
-//	case 37:
-//	{
-//
-//	}
-//	// and(or(y,x),x)
-//	case 38:
-//	{
-//
-//	}
-//	// and(x, not(x))
-//	case 39:
-//	{
-//
-//	}
-//	// and(not(x), x)
-//	case 40:
-//	{
-//
-//	}
-//	// or(x,not(x))
-//	case 41:
-//	{
-//
-//	}
-//	// or(not(x),x)
-//	case 42:
-//	{
-//
-//	}
-	}
-}
-
-static YPR<Expression> movableExprMutation(
-	[](Expression* _message, unsigned _seed)
-	{
-		YPM::functionWrapper<Expression>(
-			[](Expression* _message, YulRandomNumGenerator& _rand)
-			{
-				movableExpr(_message, _rand);
-			},
-			_message,
-			_seed,
-			YPM::s_highIP,
-			"Mutate to movable expression"
-		);
-	}
-);
-
-static YPR<Block> nonmovableFunction(
-	[](Block* _message, unsigned _seed)
-	{
-		YPM::functionWrapper<Block>(
-			[](Block* _message, YulRandomNumGenerator& _rand)
-			{
-				auto f = new FunctionDef();
-				f->set_num_input_params(0);
-			    f->set_num_output_params(1);
-				if (_rand() % 2 == 0)
-					f->mutable_block()->add_statements()->set_allocated_storage_func(new StoreFunc());
-				else
-					f->mutable_block()->add_statements()->set_allocated_forstmt(new ForStmt());
-				auto call = new FunctionExpr();
-				call->set_index(0);
-				auto callExpr = new Expression();
-				callExpr->set_allocated_funcexpr(call);
-				movableExpr(callExpr, _rand);
-				auto s = new StoreFunc();
-				s->set_st(StoreFunc::MSTORE);
-				s->set_allocated_val(callExpr);
-				_message->add_statements()->set_allocated_funcdef(f);
-				_message->add_statements()->set_allocated_storage_func(s);
-			},
-			_message,
-			_seed,
-			13,
-			"Add simple op with nonmovable function"
-		);
-	}
-);
-
 /// Add m/sstore(0, variable)
 static YPR<Block> addStoreToZero(
 	[](Block* _message, unsigned _seed)
@@ -985,7 +390,7 @@ static YPR<Block> addStoreToZero(
 		{
 			auto storeStmt = new StoreFunc();
 			storeStmt->set_st(YPM::EnumTypeConverter<StoreFunc_Storage>{}.enumFromSeed(_rand()));
-			storeStmt->set_allocated_loc(YPM::litExpression(_rand));
+			storeStmt->set_allocated_loc(YPM::litExpression(0));
 			storeStmt->set_allocated_val(YPM::refExpression(_rand));
 			auto stmt = _message->add_statements();
 			stmt->set_allocated_storage_func(storeStmt);
@@ -994,65 +399,6 @@ static YPR<Block> addStoreToZero(
 		_seed,
 		YPM::s_highIP,
 		"Store to zero added"
-		);
-	}
-);
-
-static YPR<Block> cyclicFunctions(
-	[](Block* _message, unsigned _seed)
-	{
-		YPM::functionWrapper<Block>(
-			[](Block* _message, YulRandomNumGenerator&)
-			{
-				auto f1 = new FunctionDef();
-				auto f2 = new FunctionDef();
-				auto f3 = new FunctionDef();
-
-				auto f1callsf2 = new FunctionCall();
-				f1callsf2->set_func_index(1);
-				auto f2callsf3 = new FunctionCall();
-				f2callsf3->set_func_index(2);
-				auto f3callsf1 = new FunctionCall();
-				f3callsf1->set_func_index(0);
-
-				f1->mutable_block()->add_statements()->set_allocated_functioncall(f1callsf2);
-				f2->mutable_block()->add_statements()->set_allocated_functioncall(f2callsf3);
-				f3->mutable_block()->add_statements()->set_allocated_functioncall(f3callsf1);
-				_message->add_statements()->set_allocated_funcdef(f1);
-				_message->add_statements()->set_allocated_funcdef(f2);
-				_message->add_statements()->set_allocated_funcdef(f3);
-			},
-			_message,
-			_seed,
-			YPM::s_highIP,
-			"Add cyclic calls"
-		);
-	}
-);
-
-static YPR<Block> callFunctionWithInfLoop(
-	[](Block* _message, unsigned _seed)
-	{
-		YPM::functionWrapper<Block>(
-			[](Block* _message, YulRandomNumGenerator&)
-			{
-				auto f1 = new FunctionDef();
-				f1->set_num_input_params(0);
-				f1->set_num_output_params(1);
-				f1->set_force_call(true);
-				auto f1callsf2 = new FunctionCall();
-				f1callsf2->set_func_index(1);
-				f1->mutable_block()->add_statements()->set_allocated_functioncall(f1callsf2);
-
-				auto f2 = new FunctionDef();
-				f2->mutable_block()->add_statements()->set_allocated_forstmt(new ForStmt());
-				_message->add_statements()->set_allocated_funcdef(f1);
-				_message->add_statements()->set_allocated_funcdef(f2);
-			},
-			_message,
-			_seed,
-			YPM::s_highIP,
-			"Call function with infinite loop"
 		);
 	}
 );
@@ -1140,10 +486,11 @@ static YPR<ForStmt> funcCallForCondition(
 				if (_message->has_for_cond())
 				{
 					_message->clear_for_cond();
-					auto functionCall = new FunctionExpr();
-					functionCall->set_index(_rand());
+					auto functionCall = new FunctionCall();
+					functionCall->set_ret(FunctionCall::SINGLE);
+					functionCall->set_func_index(_rand());
 					auto forCondExpr = new Expression();
-					forCondExpr->set_allocated_funcexpr(functionCall);
+					forCondExpr->set_allocated_func_expr(functionCall);
 					_message->set_allocated_for_cond(forCondExpr);
 				}
 			},
@@ -1153,23 +500,24 @@ static YPR<ForStmt> funcCallForCondition(
 			"Function call in for condition added"
 		);
 	}
-);
+)
+;
 
 /// Define an identity function y = x
 static YPR<Block> identityFunction(
 	[](Block* _message, unsigned _seed)
 	{
 		YPM::functionWrapper<Block>(
-			[](Block* _message, YulRandomNumGenerator& _rand)
+			[](Block* _message, YulRandomNumGenerator&)
 			{
 				auto functionDef = new FunctionDef();
 				functionDef->set_num_input_params(1);
 				functionDef->set_num_output_params(1);
 				auto functionBlock = new Block();
 				auto assignmentStatement = new AssignmentStatement();
-				assignmentStatement->set_allocated_ref_id(YPM::varRef(_rand));
+				assignmentStatement->set_allocated_ref_id(YPM::varRef(1));
 				auto rhs = new Expression();
-				rhs->set_allocated_varref(YPM::varRef(_rand));
+				rhs->set_allocated_varref(YPM::varRef(0));
 				assignmentStatement->set_allocated_expr(rhs);
 				functionBlock->add_statements()->set_allocated_assignment(assignmentStatement);
 				functionDef->set_allocated_block(functionBlock);
@@ -1231,13 +579,14 @@ static YPR<Block> addAssignment(
 			[](Block* _message, YulRandomNumGenerator& _rand)
 			{
 				auto assignmentStatement = new AssignmentStatement();
-				auto varRef = YPM::varRef(_rand);
+				auto varRef = YPM::varRef(_rand());
 				assignmentStatement->set_allocated_ref_id(varRef);
-				auto rhs = YPM::varRef(_rand);
+				auto rhs = YPM::varRef(_rand());
 				auto rhsExpr = new Expression();
 				rhsExpr->set_allocated_varref(rhs);
 				assignmentStatement->set_allocated_expr(rhsExpr);
-				_message->add_statements()->set_allocated_assignment(assignmentStatement);
+				auto newStmt = _message->add_statements();
+				newStmt->set_allocated_assignment(assignmentStatement);
 			},
 			_message,
 			_seed,
@@ -1279,10 +628,10 @@ static YPR<Block> addConstantAssignment(
 			{
 				auto assignmentStatement = new AssignmentStatement();
 				assignmentStatement->set_allocated_ref_id(
-					YPM::varRef(_rand)
+					YPM::varRef(_rand())
 				);
 				assignmentStatement->set_allocated_expr(
-					YPM::litExpression(_rand)
+					YPM::litExpression(_rand())
 				);
 				_message->add_statements()->set_allocated_assignment(assignmentStatement);
 			},
@@ -1441,7 +790,7 @@ static YPR<Block> addIfStmt(
 				// Add an assignment inside if
 				auto ifBody = new Block();
 				auto ifAssignment = new AssignmentStatement();
-				ifAssignment->set_allocated_ref_id(YPM::varRef(_rand));
+				ifAssignment->set_allocated_ref_id(YPM::varRef(_rand()));
 				ifAssignment->set_allocated_expr(YPM::refExpression(_rand));
 				auto ifBodyStmt = ifBody->add_statements();
 				ifBodyStmt->set_allocated_assignment(ifAssignment);
@@ -1489,7 +838,7 @@ static YPR<Block> addSwitchStmt(
 				auto switchStmt = new SwitchStmt();
 				switchStmt->add_case_stmt();
 				Expression *switchExpr = new Expression();
-				switchExpr->set_allocated_varref(YPM::varRef(_rand));
+				switchExpr->set_allocated_varref(YPM::varRef(_rand()));
 				switchStmt->set_allocated_switch_expr(switchExpr);
 				_message->add_statements()->set_allocated_switchstmt(switchStmt);
 			},
@@ -1667,8 +1016,8 @@ static YPR<Block> addFuncDef(
 			{
 				auto funcDef = new FunctionDef();
 				// TODO: Remove hard coding
-				auto numInputParams = _rand() % 5;
-				auto numOutputParams = _rand() % 5;
+				auto numInputParams = _rand() % 4 + 1;
+				auto numOutputParams = _rand() % 4 + 1;
 				funcDef->set_num_input_params(numInputParams);
 				funcDef->set_num_output_params(numOutputParams);
 				funcDef->set_allocated_block(new Block());
@@ -1821,13 +1170,13 @@ static YPR<Block> addRevert(
 	[](Block* _message, unsigned _seed)
 	{
 		YPM::functionWrapper<Block>(
-			[](Block* _message, YulRandomNumGenerator& _rand)
+			[](Block* _message, YulRandomNumGenerator&)
 			{
 				auto termStmt = new TerminatingStmt();
 				auto revertStmt = new RetRevStmt();
 				revertStmt->set_stmt(RetRevStmt::REVERT);
-				revertStmt->set_allocated_pos(YPM::litExpression(_rand));
-				revertStmt->set_allocated_size(YPM::litExpression(_rand));
+				revertStmt->set_allocated_pos(YPM::litExpression(0));
+				revertStmt->set_allocated_size(YPM::litExpression(0));
 				termStmt->set_allocated_ret_rev(revertStmt);
 				_message->add_statements()->set_allocated_terminatestmt(termStmt);
 			},
@@ -1864,22 +1213,20 @@ static YPR<Block> removeRevert(
 );
 
 // Mutate nullary op
-static YPR<Expression> mutateNullaryOp(
-	[](Expression* _message, unsigned _seed)
+static YPR<NullaryOp> mutateNullaryOp(
+	[](NullaryOp* _message, unsigned _seed)
 	{
-		YPM::functionWrapper<Expression>(
-			[](Expression* _message, YulRandomNumGenerator& _rand)
+		YPM::functionWrapper<NullaryOp>(
+			[](NullaryOp* _message, YulRandomNumGenerator& _rand)
 			{
-				YPM::clearExpr(_message);
-				auto op = new NullaryOp();
-				op->set_op(
+				_message->clear_op();
+				_message->set_op(
 					YPM::EnumTypeConverter<NullaryOp_NOp>{}.enumFromSeed(_rand())
 				);
-				_message->set_allocated_nop(op);
 			},
 			_message,
 			_seed,
-			13,
+			YPM::s_mediumIP,
 			"Mutate nullary operation in expression"
 		);
 	}
@@ -2006,15 +1353,14 @@ static YPR<Block> addPopUserFunc(
 		YPM::functionWrapper<Block>(
 			[](Block* _message, YulRandomNumGenerator& _rand)
 			{
-			  auto functioncall = new FunctionExpr();
-			  functioncall->set_index(_rand());
-			  // TODO: Configure call args
-//			  YPM::configureCallArgs(FunctionCall::SINGLE, functioncall, _rand);
-			  auto funcExpr = new Expression();
-			  funcExpr->set_allocated_funcexpr(functioncall);
-			  auto popStmt = new PopStmt();
-			  popStmt->set_allocated_expr(funcExpr);
-			  _message->add_statements()->set_allocated_pop(popStmt);
+				auto functioncall = new FunctionCall();
+				functioncall->set_ret(FunctionCall::SINGLE);
+				YPM::configureCallArgs(FunctionCall::SINGLE, functioncall, _rand);
+				auto funcExpr = new Expression();
+				funcExpr->set_allocated_func_expr(functioncall);
+				auto popStmt = new PopStmt();
+				popStmt->set_allocated_expr(funcExpr);
+				_message->add_statements()->set_allocated_pop(popStmt);
 			},
 			_message,
 			_seed,
@@ -2062,216 +1408,6 @@ static YPR<FunctionDef> removeFuncCallInFuncBody(
 			_seed,
 			YPM::s_mediumIP,
 			"Remove function call from function body"
-		);
-	}
-);
-
-static YPR<FunctionDef>	writeToOutputParams(
-	[](FunctionDef* _message, unsigned _seed)
-	{
-		YPM::functionWrapper<FunctionDef>(
-			[](FunctionDef* _message, YulRandomNumGenerator& _rand)
-			{
-				unsigned numInputParams = _message->num_input_params() % 5;
-				unsigned numOutputParams = _message->num_output_params() % 5;
-				if (numOutputParams > 0)
-				{
-					if (_rand() % 2 == 0)
-					{
-						// All output params are assigned to
-						for (unsigned i = 0; i < numOutputParams; i++)
-						{
-							auto varRef = new VarRef();
-							varRef->set_varnum(numInputParams + i);
-							auto assignment = new AssignmentStatement();
-							assignment->set_allocated_ref_id(varRef);
-							_message->mutable_block()->add_statements()->set_allocated_assignment(assignment);
-						}
-					}
-					else
-					{
-						auto functionCall = new FunctionCall();
-						functionCall->set_func_index(_rand());
-						functionCall->mutable_out_param1()->set_varnum(numInputParams);
-						functionCall->mutable_out_param2()->set_varnum(numInputParams + 1);
-						functionCall->mutable_out_param3()->set_varnum(numInputParams + 2);
-						functionCall->mutable_out_param4()->set_varnum(numInputParams + 3);
-						_message->mutable_block()->add_statements()->set_allocated_functioncall(functionCall);
-					}
-				}
-			},
-			_message,
-			_seed,
-			YPM::s_highIP,
-			"Mutate assign statements so they write to out param"
-		);
-	}
-);
-
-static YPR<FunctionDef> readFromInputParams(
-	[](FunctionDef* _message, unsigned _seed)
-	{
-		YPM::functionWrapper<FunctionDef>(
-			[](FunctionDef* _message, YulRandomNumGenerator& _rand)
-			{
-				unsigned numInputParams = _message->num_input_params() % 5;
-				if (numInputParams > 0)
-				{
-					// Choose a random input parameter to read from
-					auto varRef = new VarRef();
-					varRef->set_varnum(_rand() % numInputParams);
-					switch (_rand() % 4)
-					{
-					case 0:
-					{
-						auto ifStmt = new IfStmt();
-						ifStmt->mutable_cond()->set_allocated_varref(varRef);
-						_message->mutable_block()->add_statements()->set_allocated_ifstmt(ifStmt);
-						break;
-					}
-					case 1:
-					{
-						auto switchStmt = new SwitchStmt();
-						switchStmt->mutable_switch_expr()->set_allocated_varref(varRef);
-						_message->mutable_block()->add_statements()->set_allocated_switchstmt(switchStmt);
-						break;
-					}
-					case 2:
-					{
-						auto forStmt = new ForStmt();
-						forStmt->mutable_for_cond()->set_allocated_varref(varRef);
-						_message->mutable_block()->add_statements()->set_allocated_forstmt(forStmt);
-						break;
-					}
-					case 3:
-					{
-						auto functionCall = new FunctionCall();
-						auto getVarRef = [](YulRandomNumGenerator& _rand, unsigned _numInputParams) -> VarRef* {
-						  auto v = new VarRef();
-						  v->set_varnum(_rand() % _numInputParams);
-						  return v;
-						};
-						functionCall->mutable_in_param1()->set_allocated_varref(varRef);
-						functionCall->mutable_in_param2()->set_allocated_varref(getVarRef(_rand, numInputParams));
-						functionCall->mutable_in_param3()->set_allocated_varref(getVarRef(_rand, numInputParams));
-						functionCall->mutable_in_param4()->set_allocated_varref(getVarRef(_rand, numInputParams));
-						_message->mutable_block()->add_statements()->set_allocated_functioncall(functionCall);
-						break;
-					}
-					}
-				}
-			},
-			_message,
-			_seed,
-			YPM::s_highIP,
-			"Mutate conditional expressions to read from input params"
-		);
-	}
-);
-
-template <typename BlockStmt>
-void randomiseStmtOrder(BlockStmt* _b, YulRandomNumGenerator& _rand)
-{
-	unsigned numStatements = _b->block().statements_size();
-	auto swapIndex = [&]() { return _rand() % numStatements; };
-	if (numStatements > 1)
-		_b->mutable_block()->mutable_statements()->SwapElements(swapIndex(), swapIndex());
-}
-
-
-static YPR<FunctionDef> randomiseFunctionBlock(
-	[](FunctionDef* _message, unsigned _seed)
-	{
-		YPM::functionWrapper<FunctionDef>(
-			[](FunctionDef* _message, YulRandomNumGenerator& _rand)
-			{
-				randomiseStmtOrder<FunctionDef>(_message, _rand);
-			},
-			_message,
-			_seed,
-			YPM::s_highIP,
-			"Change order of statements in function block"
-		);
-	}
-);
-
-static YPR<IfStmt> randomiseIfBlock(
-	[](IfStmt* _message, unsigned _seed)
-	{
-		YPM::functionWrapper<IfStmt>(
-			[](IfStmt* _message, YulRandomNumGenerator& _rand)
-			{
-				randomiseStmtOrder<IfStmt>(_message, _rand);
-			},
-			_message,
-			_seed,
-			YPM::s_highIP,
-			"Change order of statements in if block"
-		);
-	}
-);
-
-static YPR<SwitchStmt> randomiseSwitchDefaultBlock(
-	[](SwitchStmt* _message, unsigned _seed)
-	{
-		YPM::functionWrapper<SwitchStmt>(
-			[](SwitchStmt* _message, YulRandomNumGenerator& _rand)
-			{
-				randomiseStmtOrder<SwitchStmt>(_message, _rand);
-			},
-			_message,
-			_seed,
-			YPM::s_highIP,
-			"Change order of statements in switch default block"
-		);
-	}
-);
-
-static YPR<CaseStmt> randomiseCaseBlock(
-	[](CaseStmt* _message, unsigned _seed)
-	{
-		YPM::functionWrapper<CaseStmt>(
-			[](CaseStmt* _message, YulRandomNumGenerator& _rand)
-			{
-				randomiseStmtOrder<CaseStmt>(_message, _rand);
-			},
-			_message,
-			_seed,
-			YPM::s_highIP,
-			"Change order of statements in switch-case block"
-		);
-	}
-);
-
-static YPR<Code> randomiseCodeBlock(
-	[](Code* _message, unsigned _seed)
-	{
-		YPM::functionWrapper<Code>(
-			[](Code* _message, YulRandomNumGenerator& _rand)
-			{
-				randomiseStmtOrder<Code>(_message, _rand);
-			},
-			_message,
-			_seed,
-			YPM::s_highIP,
-			"Change order of statements in code block"
-		);
-	}
-);
-
-static YPR<Program> randomiseProgramBlock(
-	[](Program* _message, unsigned _seed)
-	{
-		YPM::functionWrapper<Program>(
-			[](Program* _message, YulRandomNumGenerator& _rand)
-			{
-				if (_message->has_block())
-					randomiseStmtOrder<Program>(_message, _rand);
-			},
-			_message,
-			_seed,
-			YPM::s_highIP,
-			"Change order of statements in program block"
 		);
 	}
 );
@@ -2326,9 +1462,10 @@ static YPR<Expression> mutateExprToFuncCall(
 			[](Expression* _message, YulRandomNumGenerator& _rand)
 			{
 				YPM::clearExpr(_message);
-				auto functionCall = new FunctionExpr();
-				functionCall->set_index(_rand());
-				_message->set_allocated_funcexpr(functionCall);
+				auto functionCall = new FunctionCall();
+				functionCall->set_ret(FunctionCall::SINGLE);
+				functionCall->set_func_index(_rand());
+				_message->set_allocated_func_expr(functionCall);
 			},
 			_message,
 			_seed,
@@ -2346,7 +1483,7 @@ static YPR<Expression> mutateExprToVarRef(
 			[](Expression* _message, YulRandomNumGenerator& _rand)
 			{
 				YPM::clearExpr(_message);
-				_message->set_allocated_varref(YPM::varRef(_rand));
+				_message->set_allocated_varref(YPM::varRef(_rand()));
 			},
 			_message,
 			_seed,
@@ -2384,7 +1521,7 @@ static YPR<Statement> addVarRefToStmtRec(
 					_message,
 					[](Expression* _expr, YulRandomNumGenerator& _rand)
 					{
-						_expr->set_allocated_varref(YPM::varRef(_rand));
+						_expr->set_allocated_varref(YPM::varRef(_rand()));
 					},
 					_rand
 				);
@@ -2543,102 +1680,6 @@ static YPR<Block> addStmt(
 	}
 );
 
-///
-static YPR<Expression> mutateUnsetExpr(
-	[](Expression* _message, unsigned _seed)
-	{
-		YPM::functionWrapper<Expression>(
-			[](Expression* _message, YulRandomNumGenerator& _rand)
-			{
-				switch (_rand() % 5)
-				{
-				case 0:
-					YPM::unsetExprMutator(
-						_message,
-						_rand,
-						[](Expression* _message, YulRandomNumGenerator& _r)
-						{
-							auto tmp = YPM::binopExpression(_r);
-							_message->CopyFrom(*tmp);
-							delete tmp;
-						}
-					);
-					break;
-				case 1:
-					YPM::unsetExprMutator(
-						_message,
-						_rand,
-						[](Expression* _message, YulRandomNumGenerator& _r)
-						{
-						  auto tmp = YPM::refExpression(_r);
-						  _message->CopyFrom(*tmp);
-						  delete tmp;
-						}
-					);
-					break;
-				case 2:
-					YPM::unsetExprMutator(
-						_message,
-						_rand,
-						[](Expression* _message, YulRandomNumGenerator& _r)
-						{
-						  auto tmp = YPM::loadExpression(_r);
-						  _message->CopyFrom(*tmp);
-						  delete tmp;
-						}
-					);
-					break;
-				case 3:
-					YPM::unsetExprMutator(
-						_message,
-						_rand,
-						[](Expression* _message, YulRandomNumGenerator& _r)
-						{
-						  auto tmp = YPM::litExpression(_r);
-						  _message->CopyFrom(*tmp);
-						  delete tmp;
-						}
-					);
-					break;
-				case 4:
-					YPM::unsetExprMutator(
-						_message,
-						_rand,
-						[](Expression* _message, YulRandomNumGenerator& _r)
-						{
-						  auto tmp = YPM::loadFromZero(_r);
-						  _message->CopyFrom(*tmp);
-						  delete tmp;
-						}
-					);
-					break;
-				}
-			},
-			_message,
-			_seed,
-			YPM::s_highIP,
-			"Mutate unset expression"
-		);
-	}
-);
-
-/// Add statement to function
-static YPR<FunctionDef> addStmtToFunction(
-	[](FunctionDef* _message, unsigned _seed)
-	{
-		YPM::functionWrapper<FunctionDef>(
-			[](FunctionDef* _message, YulRandomNumGenerator& _rand)
-			{
-			  YPM::addStmt(_message->mutable_block(), _rand);
-			},
-			_message,
-			_seed,
-			YPM::s_highIP,
-			"Add pseudo randomly chosen statement type to function block"
-		);
-	}
-);
-
 void YPM::addArgs(
 	Statement *_stmt,
 	std::function<Expression *(YulRandomNumGenerator&)> _func,
@@ -2655,7 +1696,7 @@ void YPM::addArgs(
 		if (!_stmt->assignment().has_expr() || !isSet(_stmt->assignment().expr()))
 			_stmt->mutable_assignment()->set_allocated_expr(_func(_rand));
 		if (!_stmt->assignment().has_ref_id() || _stmt->assignment().ref_id().varnum() == 0)
-			_stmt->mutable_assignment()->set_allocated_ref_id(varRef(_rand));
+			_stmt->mutable_assignment()->set_allocated_ref_id(varRef(_rand()));
 		break;
 	case Statement::kIfstmt:
 		if (!_stmt->ifstmt().has_cond() || !isSet(_stmt->ifstmt().cond()))
@@ -2727,13 +1768,13 @@ void YPM::addArgs(
 		if (!_stmt->functioncall().has_in_param4() || !isSet(_stmt->functioncall().in_param4()))
 			_stmt->mutable_functioncall()->set_allocated_in_param4(_func(_rand));
 		if (!_stmt->functioncall().has_out_param1() || _stmt->functioncall().out_param1().varnum() == 0)
-			_stmt->mutable_functioncall()->set_allocated_out_param1(varRef(_rand));
+			_stmt->mutable_functioncall()->set_allocated_out_param1(varRef(_rand()));
 		if (!_stmt->functioncall().has_out_param2() || _stmt->functioncall().out_param2().varnum() == 0)
-			_stmt->mutable_functioncall()->set_allocated_out_param2(varRef(_rand));
+			_stmt->mutable_functioncall()->set_allocated_out_param2(varRef(_rand()));
 		if (!_stmt->functioncall().has_out_param3() || _stmt->functioncall().out_param3().varnum() == 0)
-			_stmt->mutable_functioncall()->set_allocated_out_param3(varRef(_rand));
+			_stmt->mutable_functioncall()->set_allocated_out_param3(varRef(_rand()));
 		if (!_stmt->functioncall().has_out_param4() || _stmt->functioncall().out_param4().varnum() == 0)
-			_stmt->mutable_functioncall()->set_allocated_out_param4(varRef(_rand));
+			_stmt->mutable_functioncall()->set_allocated_out_param4(varRef(_rand()));
 		break;
 	case Statement::kFuncdef:
 		break;
@@ -2819,10 +1860,13 @@ void YPM::addArgsRec(
 		_mutator(_stmt->mutable_functioncall()->mutable_in_param2(), _rand);
 		_mutator(_stmt->mutable_functioncall()->mutable_in_param3(), _rand);
 		_mutator(_stmt->mutable_functioncall()->mutable_in_param4(), _rand);
-		_stmt->mutable_functioncall()->set_allocated_out_param1(varRef(_rand));
-		_stmt->mutable_functioncall()->set_allocated_out_param2(varRef(_rand));
-		_stmt->mutable_functioncall()->set_allocated_out_param3(varRef(_rand));
-		_stmt->mutable_functioncall()->set_allocated_out_param4(varRef(_rand));
+		if (_stmt->functioncall().ret() == FunctionCall_Returns::FunctionCall_Returns_MULTIASSIGN)
+		{
+			_stmt->mutable_functioncall()->set_allocated_out_param1(varRef(_rand()));
+			_stmt->mutable_functioncall()->set_allocated_out_param2(varRef(_rand()));
+			_stmt->mutable_functioncall()->set_allocated_out_param3(varRef(_rand()));
+			_stmt->mutable_functioncall()->set_allocated_out_param4(varRef(_rand()));
+		}
 		break;
 	case Statement::kFuncdef:
 		break;
@@ -2910,64 +1954,89 @@ Literal* YPM::intLiteral(unsigned _value)
 	return lit;
 }
 
-Expression* YPM::litExpression(YulRandomNumGenerator& _rand)
+Expression* YPM::litExpression(unsigned _value)
 {
+	auto lit = intLiteral(_value);
 	auto expr = new Expression();
-	expr->set_allocated_cons(intLiteral(_rand()));
+	expr->set_allocated_cons(lit);
 	return expr;
 }
 
-VarRef* YPM::varRef(YulRandomNumGenerator& _rand)
+VarRef* YPM::varRef(unsigned _seed)
 {
 	auto varref = new VarRef();
-	varref->set_varnum(_rand());
+	varref->set_varnum(_seed);
 	return varref;
 }
 
 Expression* YPM::refExpression(YulRandomNumGenerator& _rand)
 {
 	auto refExpr = new Expression();
-	refExpr->set_allocated_varref(varRef(_rand));
+	refExpr->set_allocated_varref(varRef(_rand()));
 	return refExpr;
 }
 
 void YPM::configureCall(FunctionCall *_call, YulRandomNumGenerator& _rand)
 {
+	auto type = EnumTypeConverter<FunctionCall_Returns>{}.enumFromSeed(_rand());
+	_call->set_ret(type);
 	_call->set_func_index(_rand());
-	configureCallArgs(_call, _rand);
+	configureCallArgs(type, _call, _rand);
 }
 
 void YPM::configureCallArgs(
+	FunctionCall_Returns _callType,
 	FunctionCall *_call,
 	YulRandomNumGenerator& _rand
 )
 {
-	_call->set_allocated_out_param4(YPM::varRef(_rand));
-	_call->set_allocated_out_param3(YPM::varRef(_rand));
-	_call->set_allocated_out_param2(YPM::varRef(_rand));
-	_call->set_allocated_out_param1(YPM::varRef(_rand));
-	auto inArg4 = new Expression();
-	inArg4->set_allocated_varref(YPM::varRef(_rand));
-	_call->set_allocated_in_param4(inArg4);
+	// Configuration rules:
+	// All function calls must configure four input arguments, because
+	// a function of any type may have at most four input arguments.
+	// Out arguments need to be configured only for multi-assign
+	switch (_callType)
+	{
+	case FunctionCall_Returns_MULTIASSIGN:
+	{
+		_call->set_allocated_out_param4(YPM::varRef(_rand()));
+		_call->set_allocated_out_param3(YPM::varRef(_rand()));
+		_call->set_allocated_out_param2(YPM::varRef(_rand()));
+		_call->set_allocated_out_param1(YPM::varRef(_rand()));
+	}
+	[[fallthrough]];
+	case FunctionCall_Returns_MULTIDECL:
+	[[fallthrough]];
+	case FunctionCall_Returns_SINGLE:
+	[[fallthrough]];
+	case FunctionCall_Returns_ZERO:
+	{
+		auto inArg4 = new Expression();
+		inArg4->set_allocated_varref(YPM::varRef(_rand()));
+		_call->set_allocated_in_param4(inArg4);
 
-	auto inArg3 = new Expression();
-	inArg3->set_allocated_varref(YPM::varRef(_rand));
-	_call->set_allocated_in_param3(inArg3);
+		auto inArg3 = new Expression();
+		inArg3->set_allocated_varref(YPM::varRef(_rand()));
+		_call->set_allocated_in_param3(inArg3);
 
-	auto inArg2 = new Expression();
-	inArg2->set_allocated_varref(YPM::varRef(_rand));
-	_call->set_allocated_in_param2(inArg2);
+		auto inArg2 = new Expression();
+		inArg2->set_allocated_varref(YPM::varRef(_rand()));
+		_call->set_allocated_in_param2(inArg2);
 
-	auto inArg1 = new Expression();
-	inArg1->set_allocated_varref(YPM::varRef(_rand));
-	_call->set_allocated_in_param1(inArg1);
+		auto inArg1 = new Expression();
+		inArg1->set_allocated_varref(YPM::varRef(_rand()));
+		_call->set_allocated_in_param1(inArg1);
+		break;
+	}
+	}
 }
 
 template <typename T>
 T YPM::EnumTypeConverter<T>::validEnum(unsigned _seed)
 {
 	auto ret = static_cast<T>(_seed % (enumMax() - enumMin() + 1) + enumMin());
-	if constexpr (std::is_same_v<std::decay_t<T>, StoreFunc_Storage>)
+	if constexpr (std::is_same_v<std::decay_t<T>, FunctionCall_Returns>)
+		yulAssert(FunctionCall_Returns_IsValid(ret), "Yul proto mutator: Invalid enum");
+	else if constexpr (std::is_same_v<std::decay_t<T>, StoreFunc_Storage>)
 		yulAssert(StoreFunc_Storage_IsValid(ret), "Yul proto mutator: Invalid enum");
 	else if constexpr (std::is_same_v<std::decay_t<T>, NullaryOp_NOp>)
 		yulAssert(NullaryOp_NOp_IsValid(ret), "Yul proto mutator: Invalid enum");
@@ -2989,7 +2058,9 @@ T YPM::EnumTypeConverter<T>::validEnum(unsigned _seed)
 template <typename T>
 int YPM::EnumTypeConverter<T>::enumMax()
 {
-	if constexpr (std::is_same_v<std::decay_t<T>, StoreFunc_Storage>)
+	if constexpr (std::is_same_v<std::decay_t<T>, FunctionCall_Returns>)
+		return FunctionCall_Returns_Returns_MAX;
+	else if constexpr (std::is_same_v<std::decay_t<T>, StoreFunc_Storage>)
 		return StoreFunc_Storage_Storage_MAX;
 	else if constexpr (std::is_same_v<std::decay_t<T>, NullaryOp_NOp>)
 		return NullaryOp_NOp_NOp_MAX;
@@ -3010,7 +2081,9 @@ int YPM::EnumTypeConverter<T>::enumMax()
 template <typename T>
 int YPM::EnumTypeConverter<T>::enumMin()
 {
-	if constexpr (std::is_same_v<std::decay_t<T>, StoreFunc_Storage>)
+	if constexpr (std::is_same_v<std::decay_t<T>, FunctionCall_Returns>)
+		return FunctionCall_Returns_Returns_MIN;
+	else if constexpr (std::is_same_v<std::decay_t<T>, StoreFunc_Storage>)
 		return StoreFunc_Storage_Storage_MIN;
 	else if constexpr (std::is_same_v<std::decay_t<T>, NullaryOp_NOp>)
 		return NullaryOp_NOp_NOp_MIN;
@@ -3052,7 +2125,7 @@ Expression* YPM::loadExpression(YulRandomNumGenerator& _rand)
 Expression* YPM::loadFromZero(YulRandomNumGenerator& _rand)
 {
 	auto unop = new UnaryOp();
-	unop->set_allocated_operand(litExpression(_rand));
+	unop->set_allocated_operand(litExpression(0));
 	switch (_rand() % 3)
 	{
 	case 0:
@@ -3098,6 +2171,10 @@ void YPM::clearExpr(Expression* _expr)
 		delete _expr->release_nop();
 		_expr->clear_nop();
 		break;
+	case Expression::kFuncExpr:
+		delete _expr->release_func_expr();
+		_expr->clear_func_expr();
+		break;
 	case Expression::kLowcall:
 		delete _expr->release_lowcall();
 		_expr->clear_lowcall();
@@ -3109,10 +2186,6 @@ void YPM::clearExpr(Expression* _expr)
 	case Expression::kUnopdata:
 		delete _expr->release_unopdata();
 		_expr->clear_unopdata();
-		break;
-	case Expression::kFuncexpr:
-		delete _expr->release_funcexpr();
-		_expr->clear_funcexpr();
 		break;
 	case Expression::EXPR_ONEOF_NOT_SET:
 		break;
@@ -3135,7 +2208,7 @@ Expression* YPM::binopExpression(YulRandomNumGenerator& _rand)
 void YPM::unsetExprMutator(
 	Expression* _expr,
 	YulRandomNumGenerator& _rand,
-	std::function<void(Expression*, YulRandomNumGenerator&)> _mutateExprFunc
+	std::function<void(Expression*, unsigned)> _mutateExprFunc
 )
 {
 	switch (_expr->expr_oneof_case())
@@ -3150,45 +2223,73 @@ void YPM::unsetExprMutator(
 		break;
 	case Expression::kBinop:
 		if (!isSet(_expr->binop().left()))
-			_mutateExprFunc(_expr->mutable_binop()->mutable_left(), _rand);
+			_mutateExprFunc(_expr->mutable_binop()->mutable_left(), _rand());
 		else
 			unsetExprMutator(_expr->mutable_binop()->mutable_left(), _rand, _mutateExprFunc);
 
 		if (!isSet(_expr->binop().right()))
-			_mutateExprFunc(_expr->mutable_binop()->mutable_right(), _rand);
+			_mutateExprFunc(_expr->mutable_binop()->mutable_right(), _rand());
 		else
 			unsetExprMutator(_expr->mutable_binop()->mutable_right(), _rand, _mutateExprFunc);
 		break;
 	case Expression::kUnop:
 		if (!isSet(_expr->unop().operand()))
-			_mutateExprFunc(_expr->mutable_unop()->mutable_operand(), _rand);
+			_mutateExprFunc(_expr->mutable_unop()->mutable_operand(), _rand());
 		else
 			unsetExprMutator(_expr->mutable_unop()->mutable_operand(), _rand, _mutateExprFunc);
 		break;
 	case Expression::kTop:
 		if (!isSet(_expr->top().arg1()))
-			_mutateExprFunc(_expr->mutable_top()->mutable_arg1(), _rand);
+			_mutateExprFunc(_expr->mutable_top()->mutable_arg1(), _rand());
 		else
 			unsetExprMutator(_expr->mutable_top()->mutable_arg1(), _rand, _mutateExprFunc);
 
 		if (!isSet(_expr->top().arg2()))
-			_mutateExprFunc(_expr->mutable_top()->mutable_arg2(), _rand);
+			_mutateExprFunc(_expr->mutable_top()->mutable_arg2(), _rand());
 		else
 			unsetExprMutator(_expr->mutable_top()->mutable_arg2(), _rand, _mutateExprFunc);
 
 		if (!isSet(_expr->top().arg3()))
-			_mutateExprFunc(_expr->mutable_top()->mutable_arg3(), _rand);
+			_mutateExprFunc(_expr->mutable_top()->mutable_arg3(), _rand());
 		else
 			unsetExprMutator(_expr->mutable_top()->mutable_arg3(), _rand, _mutateExprFunc);
 		break;
 	case Expression::kNop:
+		break;
+	case Expression::kFuncExpr:
+		_expr->mutable_func_expr()->set_ret(FunctionCall_Returns::FunctionCall_Returns_SINGLE);
+
+		if (!isSet(_expr->func_expr().in_param1()))
+			_mutateExprFunc(_expr->mutable_func_expr()->mutable_in_param1(), _rand());
+		else
+			unsetExprMutator(_expr->mutable_func_expr()->mutable_in_param1(), _rand,
+			                 _mutateExprFunc);
+
+		if (!isSet(_expr->func_expr().in_param2()))
+			_mutateExprFunc(_expr->mutable_func_expr()->mutable_in_param2(), _rand());
+		else
+			unsetExprMutator(_expr->mutable_func_expr()->mutable_in_param2(), _rand,
+			                 _mutateExprFunc);
+
+		if (!isSet(_expr->func_expr().in_param3()))
+			_mutateExprFunc(_expr->mutable_func_expr()->mutable_in_param3(), _rand());
+		else
+			unsetExprMutator(_expr->mutable_func_expr()->mutable_in_param3(), _rand,
+			                 _mutateExprFunc);
+
+		if (!isSet(_expr->func_expr().in_param4()))
+			_mutateExprFunc(_expr->mutable_func_expr()->mutable_in_param4(), _rand());
+		else
+			unsetExprMutator(_expr->mutable_func_expr()->mutable_in_param4(), _rand,
+			                 _mutateExprFunc);
+
 		break;
 	case Expression::kLowcall:
 		// Wei
 		if (_expr->lowcall().callty() == LowLevelCall::CALLCODE || _expr->lowcall().callty() == LowLevelCall::CALL)
 		{
 			if (!isSet(_expr->lowcall().wei()))
-				_mutateExprFunc(_expr->mutable_lowcall()->mutable_wei(), _rand);
+				_mutateExprFunc(_expr->mutable_lowcall()->mutable_wei(), _rand());
 			else
 				unsetExprMutator(_expr->mutable_lowcall()->mutable_wei(), _rand,
 				                 _mutateExprFunc);
@@ -3196,35 +2297,35 @@ void YPM::unsetExprMutator(
 
 		// Gas
 		if (!isSet(_expr->lowcall().gas()))
-			_mutateExprFunc(_expr->mutable_lowcall()->mutable_gas(), _rand);
+			_mutateExprFunc(_expr->mutable_lowcall()->mutable_gas(), _rand());
 		else
 			unsetExprMutator(_expr->mutable_lowcall()->mutable_gas(), _rand, _mutateExprFunc);
 
 		// Addr
 		if (!isSet(_expr->lowcall().addr()))
-			_mutateExprFunc(_expr->mutable_lowcall()->mutable_addr(), _rand);
+			_mutateExprFunc(_expr->mutable_lowcall()->mutable_addr(), _rand());
 		else
 			unsetExprMutator(_expr->mutable_lowcall()->mutable_addr(), _rand, _mutateExprFunc);
 
 		// In
 		if (!isSet(_expr->lowcall().in()))
-			_mutateExprFunc(_expr->mutable_lowcall()->mutable_in(), _rand);
+			_mutateExprFunc(_expr->mutable_lowcall()->mutable_in(), _rand());
 		else
 			unsetExprMutator(_expr->mutable_lowcall()->mutable_in(), _rand, _mutateExprFunc);
 		// Insize
 		if (!isSet(_expr->lowcall().insize()))
-			_mutateExprFunc(_expr->mutable_lowcall()->mutable_insize(), _rand);
+			_mutateExprFunc(_expr->mutable_lowcall()->mutable_insize(), _rand());
 		else
 			unsetExprMutator(_expr->mutable_lowcall()->mutable_insize(), _rand,
 			                 _mutateExprFunc);
 		// Out
 		if (!isSet(_expr->lowcall().out()))
-			_mutateExprFunc(_expr->mutable_lowcall()->mutable_out(), _rand);
+			_mutateExprFunc(_expr->mutable_lowcall()->mutable_out(), _rand());
 		else
 			unsetExprMutator(_expr->mutable_lowcall()->mutable_out(), _rand, _mutateExprFunc);
 		// Outsize
 		if (!isSet(_expr->lowcall().outsize()))
-			_mutateExprFunc(_expr->mutable_lowcall()->mutable_outsize(), _rand);
+			_mutateExprFunc(_expr->mutable_lowcall()->mutable_outsize(), _rand());
 		else
 			unsetExprMutator(_expr->mutable_lowcall()->mutable_outsize(), _rand,
 			                 _mutateExprFunc);
@@ -3234,52 +2335,32 @@ void YPM::unsetExprMutator(
 		if (_expr->create().createty() == Create_Type::Create_Type_CREATE2)
 		{
 			if (!isSet(_expr->create().value()))
-				_mutateExprFunc(_expr->mutable_create()->mutable_value(), _rand);
+				_mutateExprFunc(_expr->mutable_create()->mutable_value(), _rand());
 			else
 				unsetExprMutator(_expr->mutable_create()->mutable_value(), _rand,
 				                 _mutateExprFunc);
 		}
 		// Wei
 		if (!isSet(_expr->create().wei()))
-			_mutateExprFunc(_expr->mutable_create()->mutable_wei(), _rand);
+			_mutateExprFunc(_expr->mutable_create()->mutable_wei(), _rand());
 		else
 			unsetExprMutator(_expr->mutable_create()->mutable_wei(), _rand, _mutateExprFunc);
 		// Position
 		if (!isSet(_expr->create().position()))
-			_mutateExprFunc(_expr->mutable_create()->mutable_position(), _rand);
+			_mutateExprFunc(_expr->mutable_create()->mutable_position(), _rand());
 		else
 			unsetExprMutator(_expr->mutable_create()->mutable_position(), _rand,
 			                 _mutateExprFunc);
 		// Size
 		if (!isSet(_expr->create().size()))
-			_mutateExprFunc(_expr->mutable_create()->mutable_size(), _rand);
+			_mutateExprFunc(_expr->mutable_create()->mutable_size(), _rand());
 		else
 			unsetExprMutator(_expr->mutable_create()->mutable_size(), _rand, _mutateExprFunc);
 		break;
 	case Expression::kUnopdata:
 		break;
-	case Expression::kFuncexpr:
-		if (_expr->funcexpr().index() == 0)
-			_expr->mutable_funcexpr()->set_index(_rand());
-		if (!isSet(_expr->funcexpr().in_param1()))
-			_mutateExprFunc(_expr->mutable_funcexpr()->mutable_in_param1(), _rand);
-		else
-			unsetExprMutator(_expr->mutable_funcexpr()->mutable_in_param1(), _rand, _mutateExprFunc);
-		if (!isSet(_expr->funcexpr().in_param2()))
-			_mutateExprFunc(_expr->mutable_funcexpr()->mutable_in_param2(), _rand);
-		else
-			unsetExprMutator(_expr->mutable_funcexpr()->mutable_in_param2(), _rand, _mutateExprFunc);
-		if (!isSet(_expr->funcexpr().in_param3()))
-			_mutateExprFunc(_expr->mutable_funcexpr()->mutable_in_param3(), _rand);
-		else
-			unsetExprMutator(_expr->mutable_funcexpr()->mutable_in_param3(), _rand, _mutateExprFunc);
-		if (!isSet(_expr->funcexpr().in_param4()))
-			_mutateExprFunc(_expr->mutable_funcexpr()->mutable_in_param4(), _rand);
-		else
-			unsetExprMutator(_expr->mutable_funcexpr()->mutable_in_param4(), _rand, _mutateExprFunc);
-		break;
 	case Expression::EXPR_ONEOF_NOT_SET:
-		_mutateExprFunc(_expr, _rand);
+		_mutateExprFunc(_expr, _rand());
 		break;
 	}
 }

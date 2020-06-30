@@ -72,9 +72,17 @@ string ProtoConverter::dummyExpression()
 string ProtoConverter::dictionaryToken(HexPrefix _p)
 {
 	std::string token;
-	unsigned indexVar = m_inputSize * m_inputSize + counter();
-	token = hexDictionary[indexVar % hexDictionary.size()];
-	yulAssert(token.size() <= 64, "Proto Fuzzer: Dictionary token too large");
+	// If dictionary constant is requested while converting
+	// for loop condition, then return zero so that we don't
+	// generate infinite for loops.
+	if (m_inForCond)
+		token = "0";
+	else
+	{
+		unsigned indexVar = m_inputSize * m_inputSize + counter();
+		token = hexDictionary[indexVar % hexDictionary.size()];
+		yulAssert(token.size() <= 64, "Proto Fuzzer: Dictionary token too large");
+	}
 
 	return _p == HexPrefix::Add ? "0x" + token : token;
 }
@@ -199,6 +207,12 @@ bool ProtoConverter::varDeclAvailable()
 	}
 }
 
+bool ProtoConverter::functionCallNotPossible(FunctionCall_Returns _type)
+{
+	return _type == FunctionCall::SINGLE ||
+		(_type == FunctionCall::MULTIASSIGN && !varDeclAvailable());
+}
+
 string ProtoConverter::varRef(unsigned _index)
 {
 	if (m_inFunctionDef)
@@ -220,23 +234,6 @@ void ProtoConverter::visit(VarRef const& _x)
 	m_output << varRef(_x.varnum());
 }
 
-void ProtoConverter::visit(FunctionExpr const& _x)
-{
-	vector<pair<string, unsigned>> functionSet;
-	for (auto const& f: m_functionSigMap)
-		if (f.second.second == 1)
-			functionSet.emplace_back(f.first, f.second.first);
-	if (functionSet.size() > 0)
-	{
-		pair<string, unsigned> chosenFunction = functionSet[_x.index() % functionSet.size()];
-		convertFunctionCall(_x, chosenFunction.first, chosenFunction.second);
-	}
-	else
-	{
-		m_output << dummyExpression();
-	}
-}
-
 void ProtoConverter::visit(Expression const& _x)
 {
 	switch (_x.expr_oneof_case())
@@ -251,7 +248,13 @@ void ProtoConverter::visit(Expression const& _x)
 			visit(_x.varref());
 		break;
 	case Expression::kCons:
-		m_output << visit(_x.cons());
+		// If literal expression describes for-loop condition
+		// then force it to zero, so we don't generate infinite
+		// for loops
+		if (m_inForCond)
+			m_output << "0";
+		else
+			m_output << visit(_x.cons());
 		break;
 	case Expression::kBinop:
 		visit(_x.binop());
@@ -265,6 +268,14 @@ void ProtoConverter::visit(Expression const& _x)
 	case Expression::kNop:
 		visit(_x.nop());
 		break;
+	case Expression::kFuncExpr:
+		// FunctionCall must return a single value, otherwise
+		// we output a trivial expression "1".
+		if (_x.func_expr().ret() == FunctionCall::SINGLE)
+			visit(_x.func_expr());
+		else
+			m_output << dummyExpression();
+		break;
 	case Expression::kLowcall:
 		visit(_x.lowcall());
 		break;
@@ -276,9 +287,6 @@ void ProtoConverter::visit(Expression const& _x)
 			visit(_x.unopdata());
 		else
 			m_output << dummyExpression();
-		break;
-	case Expression::kFuncexpr:
-		visit(_x.funcexpr());
 		break;
 	case Expression::EXPR_ONEOF_NOT_SET:
 		m_output << dummyExpression();
@@ -854,8 +862,7 @@ void ProtoConverter::visit(AssignmentStatement const& _x)
 	m_output << "\n";
 }
 
-template <typename T>
-void ProtoConverter::visitFunctionInputParams(T const& _x, unsigned _numInputParams)
+void ProtoConverter::visitFunctionInputParams(FunctionCall const& _x, unsigned _numInputParams)
 {
 	// We reverse the order of function input visits since it helps keep this switch case concise.
 	switch (_numInputParams)
@@ -863,18 +870,18 @@ void ProtoConverter::visitFunctionInputParams(T const& _x, unsigned _numInputPar
 	case 4:
 		visit(_x.in_param4());
 		m_output << ", ";
-		[[fallthrough]];;
+		BOOST_FALLTHROUGH;
 	case 3:
 		visit(_x.in_param3());
 		m_output << ", ";
-		[[fallthrough]];;
+		BOOST_FALLTHROUGH;
 	case 2:
 		visit(_x.in_param2());
 		m_output << ", ";
-		[[fallthrough]];;
+		BOOST_FALLTHROUGH;
 	case 1:
 		visit(_x.in_param1());
-		[[fallthrough]];;
+		BOOST_FALLTHROUGH;
 	case 0:
 		break;
 	default:
@@ -883,18 +890,31 @@ void ProtoConverter::visitFunctionInputParams(T const& _x, unsigned _numInputPar
 	}
 }
 
-template <typename T>
+bool ProtoConverter::functionValid(FunctionCall_Returns _type, unsigned _numOutParams)
+{
+	switch (_type)
+	{
+	case FunctionCall::ZERO:
+		return _numOutParams == 0;
+	case FunctionCall::SINGLE:
+		return _numOutParams == 1;
+	case FunctionCall::MULTIDECL:
+	case FunctionCall::MULTIASSIGN:
+		return _numOutParams > 1;
+	}
+}
+
 void ProtoConverter::convertFunctionCall(
-	T const& _x,
+	FunctionCall const& _x,
 	std::string _name,
 	unsigned _numInParams,
-	bool _newline
+	bool _newLine
 )
 {
 	m_output << _name << "(";
 	visitFunctionInputParams(_x, _numInParams);
 	m_output << ")";
-	if (_newline)
+	if (_newLine)
 		m_output << "\n";
 }
 
@@ -1141,11 +1161,14 @@ void ProtoConverter::visit(ForStmt const& _x)
 	m_inForBodyScope = false;
 	m_inForInitScope = true;
 	m_forInitScopeExtEnabled = true;
+	m_inForCond = false;
 	m_output << "for ";
 	visit(_x.for_init());
 	m_inForInitScope = false;
 	m_forInitScopeExtEnabled = wasForInitScopeExtEnabled;
+	m_inForCond = true;
 	visit(_x.for_cond());
+	m_inForCond = false;
 	visit(_x.for_post());
 	m_inForBodyScope = true;
 	visit(_x.block());
